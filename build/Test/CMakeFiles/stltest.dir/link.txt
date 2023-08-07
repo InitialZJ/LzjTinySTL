@@ -1,0 +1,1 @@
+/usr/bin/c++   -O2 -Wall -Wextra -Wno-sign-compare -Wno-unused-but-set-variable -Wno-array-bounds -std=c++11 -O3 -DNDEBUG  -rdynamic CMakeFiles/stltest.dir/test.cpp.o  -o ../../bin/stltest 
