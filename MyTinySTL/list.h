@@ -307,7 +307,50 @@ class List {
 
   // 调整容器相关操作
   // assign
-  void assign(size_type)
+  void assign(size_type n, const value_type& value) { fill_assign(n, value); }
+
+  template <
+      typename Iter,
+      typename std::enable_if<mystl::IsInputIterator<Iter>::kValue, int>::type = 0>
+  void assign(Iter first, Iter last) {
+    copy_assign(first, last);
+  }
+
+  void assign(std::initializer_list<T> ilist) { copy_assign(ilist.begin(), ilist.end()); }
+
+  // emplace_front / emplace_back / emplace
+  template <typename... Args>
+  void emplace_front(Args&&... args) {
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - 1, "List<T>'s size is too big");
+    auto link_node = create_node(mystl::forward<Args>(args)...);
+    link_nodes_at_front(link_node->as_base(), link_node->as_base());
+    ++size_;
+  }
+
+  template <typename... Args>
+  void emplace_back(Args&&... args) {
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - 1, "List<T>'s size is too big");
+    auto link_node = create_node(mystl::forward<Args>(args)...);
+    link_nodes_at_back(link_node->as_base(), link_node->as_base());
+    ++size_;
+  }
+
+  template <typename... Args>
+  iterator emplace(const_iterator pos, Args&&... args) {
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - 1, "List<T>'s size is too big");
+    auto link_node = create_node(mystl::forward<Args>(args)...);
+    link_nodes(pos.node_, link_node->as_base(), link_node->as_base());
+    ++size_;
+    return iterator(link_node);
+  }
+
+  // insert
+  iterator insert(const_iterator pos, const value_type& value) {
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - 1, "List<T>'s size is too big");
+    auto link_node = create_node(mystl::move(value));
+    ++size_;
+    return link_iter_node(pos, link_node->as_base());
+  }
 };
 
 }  // namespace mystl

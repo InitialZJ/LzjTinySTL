@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/lzj/Desktop/LzjTinySTL/build/Test",
+  "command": "/usr/bin/c++   -I/home/lzj/Desktop/LzjTinySTL/MyTinySTL   -O2 -Wall -Wextra -Wno-sign-compare -Wno-unused-but-set-variable -Wno-array-bounds -std=c++11 -O3 -DNDEBUG   -o CMakeFiles/stltest.dir/test.cpp.o -c /home/lzj/Desktop/LzjTinySTL/Test/test.cpp",
+  "file": "/home/lzj/Desktop/LzjTinySTL/Test/test.cpp"
+}
+]
