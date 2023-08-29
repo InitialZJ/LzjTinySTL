@@ -16,6 +16,7 @@
 //   * insert
 
 #include <initializer_list>
+#include <type_traits>
 
 #include "allocator.h"
 #include "iterator.h"
@@ -351,6 +352,48 @@ class List {
     ++size_;
     return link_iter_node(pos, link_node->as_base());
   }
+
+  iterator insert(const_iterator pos, value_type&& value) {
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - 1, "List<T>'s size is too big");
+    auto link_node = create_node(mystl::move(value));
+    ++size_;
+    return link_iter_node(pos, link_node->as_base());
+  }
+
+  iterator insert(const_iterator pos, size_type n, const value_type& value) {
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - n, "List<T>'s size is too big");
+    return fill_insert(pos, n, value);
+  }
+
+  template <
+      typename Iter,
+      typename std::enable_if<mystl::IsInputIterator<Iter>::kValue, int>::type = 0>
+  iterator insert(const_iterator pos, Iter first, Iter last) {
+    size_type n = mystl::distance(first, last);
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - n, "List<T>'s size is too big");
+    return copy_insert(pos, n, first);
+  }
+
+  // push_front / push_back
+  void push_front(const value_type& value) {
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - 1, "List<T>'s size is too big");
+    auto link_node = create_node(value);
+    link_nodes_at_front(link_node->as_base(), link_node->as_base);
+    ++size_;
+  }
+
+  void push_front(value_type&& value) { emplace_front(mystl::move(value)); }
+
+  void push_back(const value_type& value) {
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - 1, "List<T>'s size is too big");
+    auto link_node = create_node(value);
+    link_nodes_at_back(link_node->as_base(), link_node->as_base());
+    ++size_;
+  }
+
+  void push_back(value_type&& value) { emplace_back(mystl::move(value)); }
+
+  // pop_front / pop_back
 };
 
 }  // namespace mystl
