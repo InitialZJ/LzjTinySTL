@@ -6,6 +6,10 @@
 
 #IncludeRegexTransform: 
 
+../MyTinySTL/functional.h
+cstddef
+-
+
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/algo.h
 iterator.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
@@ -53,6 +57,26 @@ cstddef
 -
 type_traits.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
+
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/list.h
+initializer_list
+-
+type_traits
+-
+algobase.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
+allocator.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/allocator.h
+exceptdef.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
+functional.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/functional.h
+iterator.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
+memory.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
+util.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
 climits
@@ -126,11 +150,25 @@ type_traits
 
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/platform.h
 
+/home/lzj/Desktop/LzjTinySTL/Test/list_test.h
+ios
+-
+list
+-
+../MyTinySTL/list.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/list.h
+functional.h
+/home/lzj/Desktop/LzjTinySTL/Test/functional.h
+test.h
+/home/lzj/Desktop/LzjTinySTL/Test/test.h
+
 /home/lzj/Desktop/LzjTinySTL/Test/test.cpp
 crtdbg.h
 -
 stdlib.h
 -
+list_test.h
+/home/lzj/Desktop/LzjTinySTL/Test/list_test.h
 vector_test.h
 /home/lzj/Desktop/LzjTinySTL/Test/vector_test.h
 

@@ -65,8 +65,8 @@ struct ListNode : public ListNodeBase<T> {
   T value;
 
   ListNode() = default;
-  explicit ListNode(const T& v) : value(v) {}
-  explicit ListNode(T&& v) : value(mystl::move(v)) {}
+  ListNode(const T& v) : value(v) {}
+  ListNode(T&& v) : value(mystl::move(v)) {}
 
   base_ptr as_base() { return static_cast<base_ptr>(&*this); }
 
@@ -86,8 +86,8 @@ struct ListIterator : public mystl::Iterator<mystl::BidirectionalIteratorTag, T>
   base_ptr node_;  // 指向当前结点
 
   ListIterator() = default;
-  explicit ListIterator(base_ptr x) : node_(x) {}
-  explicit ListIterator(node_ptr x) : node_(x->as_base()) {}
+  ListIterator(base_ptr x) : node_(x) {}
+  ListIterator(node_ptr x) : node_(x->as_base()) {}
   ListIterator(const ListIterator& rhs) : node_(rhs.node_) {}
 
   reference operator*() const { return node_->as_node()->value; }
@@ -135,9 +135,9 @@ struct ListConstIterator : public Iterator<BidirectionalIteratorTag, T> {
   base_ptr node_;
 
   ListConstIterator() = default;
-  explicit ListConstIterator(base_ptr x) : node_(x) {}
-  explicit ListConstIterator(node_ptr x) : node_(x->as_base()) {}
-  explicit ListConstIterator(const ListIterator<T>& rhs) : node_(rhs.node_) {}
+  ListConstIterator(base_ptr x) : node_(x) {}
+  ListConstIterator(node_ptr x) : node_(x->as_base()) {}
+  ListConstIterator(const ListIterator<T>& rhs) : node_(rhs.node_) {}
   ListConstIterator(const ListConstIterator& rhs) : node_(rhs.node_) {}
 
   reference operator*() const { return node_->as_node()->value; }
@@ -180,7 +180,7 @@ class List {
   using node_allocator = mystl::Allocator<ListNode<T>>;
 
   using value_type = typename allocator_type::value_type;
-  using pointer = typename allocator_type::poninter;
+  using pointer = typename allocator_type::pointer;
   using const_pointer = typename allocator_type::const_pointer;
   using reference = typename allocator_type::reference;
   using const_reference = typename allocator_type::const_reference;
@@ -239,7 +239,7 @@ class List {
   }
 
   List& operator=(std::initializer_list<T> ilist) {
-    List tmp = (ilist.begin(), ilist.end());
+    List tmp(ilist.begin(), ilist.end());
     swap(tmp);
     return *this;
   }
@@ -510,7 +510,7 @@ typename List<T>::iterator List<T>::erase(const_iterator first, const_iterator l
     while (first != last) {
       auto cur = first.node_;
       ++first;
-      destroy(cur->as_node());
+      destroy_node(cur->as_node());
       --size_;
     }
   }
@@ -682,7 +682,7 @@ void List<T>::reverse() {
   auto i = begin();
   auto e = end();
   while (i.node_ != e.node_) {
-    mystl::swap(i.node_->prev, i.node->last);
+    mystl::swap(i.node_->prev, i.node_->next);
     i.node_ = i.node_->prev;
   }
   mystl::swap(e.node_->prev, e.node_->next);
@@ -846,7 +846,8 @@ typename List<T>::iterator List<T>::fill_insert(
       // 前面已经创建了一个结点，还需要n-1个
       for (--n; n > 0; --n, ++end) {
         auto next = create_node(value);
-        end.node_->next = next.node_;
+        end.node_->next = next->as_base();
+        next->prev = end.node_;
       }
       size_ += add_size;
     } catch (...) {
@@ -872,7 +873,7 @@ template <typename Iter>
 typename List<T>::iterator List<T>::copy_insert(const_iterator pos, size_type n, Iter first) {
   iterator r(pos.node_);
   if (n != 0) {
-    const auto add_size = 0;
+    const auto add_size = n;
     auto node = create_node(*first);
     node->prev = nullptr;
     r = iterator(node);
@@ -888,7 +889,7 @@ typename List<T>::iterator List<T>::copy_insert(const_iterator pos, size_type n,
       auto enode = end.node_;
       while (true) {
         auto prev = enode->prev;
-        destroy_node(enode->as_base());
+        destroy_node(enode->as_node());
         if (prev == nullptr) {
           break;
         }
@@ -912,7 +913,7 @@ typename List<T>::iterator List<T>::list_sort(
 
   if (n == 2) {
     if (comp(*--l2, *f1)) {
-      auto ln = l2.node;
+      auto ln = l2.node_;
       unlink_nodes(ln, ln);
       link_nodes(f1.node_, ln, ln);
       return l2;
