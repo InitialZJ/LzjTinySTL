@@ -13,5 +13,5 @@
 | algorithm | 40%  | 0%   |
 | vector    | 100% | 100% |
 | list      | 100%  | 100% |
-| deque      | 1%  | 0% |
+| deque      | 10%  | 0% |
 
