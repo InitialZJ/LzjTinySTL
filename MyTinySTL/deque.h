@@ -308,7 +308,82 @@ class Deque {
     THROW_OUT_OF_RANGE_IF(!(n < size()), "Deque<T>::at() subscript out of range");
     return (*this)[n];
   }
-}
+
+  reference front() {
+    MYSTL_DEBUG(!empty());
+    return *begin();
+  }
+
+  const_reference front() const {
+    MYSTL_DEBUG(!empty());
+    return *begin();
+  }
+
+  reference back() {
+    MYSTL_DEBUG(!empty());
+    return *(end() - 1);
+  }
+
+  const_reference back() const {
+    MYSTL_DEBUG(!empty());
+    return *(end() - 1);
+  }
+
+  // 修改容器相关操作
+
+  // assign
+
+  void assign(size_type n, const value_type& value) { fill_assign(n, value); }
+
+  template <
+      typename IIter,
+      typename std::enable_if<mystl::IsInputIterator<IIter>::kValue, int>::type = 0>
+  void assign(IIter first, IIter last) {
+    copy_assign(first, last, iterator_category(first));
+  }
+
+  void assign(std::initializer_list<value_type> ilist) {
+    copy_assign(ilist.begin(), ilist.end(), mystl::ForwardIteratorTag{});
+  }
+
+  // emplace_front / emplace_back / emplace
+  template <typename... Args>
+  void emplace_front(Args&&... args);
+  template <typename... Args>
+  void emplace_back(Args&&... args);
+  template <typename... Args>
+  iterator emplace(iterator pos, Args&&... args);
+
+  // push_front / push_back
+  void push_front(const value_type& value);
+  void push_back(const value_type& value);
+
+  void push_front(value_type&& value) { emplace_front(mystl::move(value)); }
+  void push_back(value_type&& value) { emplace_back(mystl::move(value)); }
+
+  // pop_back / pop_front
+  void pop_front();
+  void pop_back();
+
+  // insert
+  iterator insert(iterator position, const value_type& value);
+  iterator insert(iterator position, value_type&& value);
+  void insert(iterator position, size_type n, const value_type& value);
+  template <
+      typename IIter,
+      typename std::enable_if<mystl::IsInputIterator<IIter>::kValue, int>::type = 0>
+  void insert(iterator position, IIter first, IIter last) {
+    insert_dispatch(position, first, last, iterator_category(first));
+  }
+
+  // erase / clear
+  iterator erase(iterator position);
+  iterator erase(iterator first, iterator last);
+  void clear();
+
+  // swap
+  void swap(Deque& rhs) noexcept;
+};
 
 }  // namespace mystl
 
