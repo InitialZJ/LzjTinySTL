@@ -157,7 +157,7 @@ struct DequeIterator : public Iterator<RandomAccessIteratorTag, T> {
     return *this;
   }
 
-  slef operator+(difference_type n) const {
+  self operator+(difference_type n) const {
     self tmp = *this;
     return tmp += n;
   }
@@ -383,7 +383,193 @@ class Deque {
 
   // swap
   void swap(Deque& rhs) noexcept;
+
+ private:
+  // helper functions
+
+  // create node / destroy node
+  map_pointer create_node(size_type size);
+  void create_buffer(map_pointer nstart, map_pointer nfinish);
+  void destroy_buffer(map_pointer nstart, map_pointer nfinish);
+
+  // initialize
+  void map_init(size_type nelem);
+  void fill_init(size_type n, const value_type& value);
+  template <typename IIter>
+  void copy_init(IIter, IIter, InputIteratorTag);
+  template <typename FIter>
+  void copy_init(FIter, FIter, ForwardIteratorTag);
+
+  // assign
+  void fill_assign(size_type n, const value_type& value);
+  template <typename IIter>
+  void copy_assign(IIter first, IIter last, InputIteratorTag);
+  template <typename FIter>
+  void copy_assign(FIter first, FIter last, ForwardIteratorTag);
+
+  // insert
+  template <typename... Args>
+  iterator insert_aux(iterator position, Args&&... args);
+  void fill_insert(iterator position, size_type n, const value_type& x);
+  template <typename FIter>
+  void copy_insert(iterator, FIter, FIter, size_type);
+  template <typename IIter>
+  void insert_dispatch(iterator, IIter, IIter, InputIteratorTag);
+  template <typename FIter>
+  void insert_dispatch(iterator, FIter, FIter, ForwardIteratorTag);
+
+  // reallocate
+  void require_capacity(size_type n, bool front);
+  void reallocate_map_at_front(size_type need);
+  void reallocate_map_at_back(size_type need);
 };
+
+// 复制赋值运算符
+template <typename T>
+Deque<T>& Deque<T>::operator=(const Deque& rhs) {
+  if (this != &rhs) {
+    const auto len = size();
+    if (len >= rhs.size()) {
+      erase(mystl::copy(rhs.begin_, rhs.end_, begin_), end_);
+    } else {
+      iterator mid = rhs.begin() + static_cast<difference_type>(len);
+      mystl::copy(rhs.begin_, mid, begin_);
+      insert(end_, mid, rhs.end_);
+    }
+  }
+  return *this;
+}
+
+// 移动赋值运算符
+template <typename T>
+Deque<T>& Deque<T>::operator=(Deque&& rhs) {
+  clear();
+  begin_ = mystl::move(rhs.begin_);
+  end_ = mystl::move(rhs.end_);
+  map_ = rhs.map_;
+  map_size_ = rhs.map_size_;
+  rhs.map_ = nullptr;
+  rhs.map_size_ = 0;
+  return *this;
+}
+
+// 重置容器大小
+template <typename T>
+void Deque<T>::resize(size_type new_size, const value_type& value) {
+  const auto len = size();
+  if (new_size < len) {
+    erase(begin_ + new_size, end_);
+  } else {
+    insert(end_, new_size - len, value);
+  }
+}
+
+// 减小容器容量
+template <typename T>
+void Deque<T>::shrink_to_fit() noexcept {
+  // 至少会留下头部缓冲区
+  for (auto cur = map_; cur < begin_.node; ++cur) {
+    data_allocator::deallocate(*cur, kBufferSize);
+    *cur = nullptr;
+  }
+  for (auto cur = end_.node + 1; cur < map_ + map_size_; ++cur) {
+    data_allocator::deallocate(*cur, kBufferSize);
+    *cur = nullptr;
+  }
+}
+
+// 在头部就地构建元素
+template <typename T>
+template <typename... Args>
+void Deque<T>::emplace_front(Args&&... args) {
+  if (begin_.cur != begin_.first) {
+    data_allocator::construct(begin_.cur - 1, mystl::forward<Args>(args)...);
+    --begin_.cur;
+  } else {
+    require_capacity(1, true);
+    try {
+      --begin_;
+      data_allocator::construct(begin_.cur, mystl::forward<Args>(args)...);
+    } catch (...) {
+      ++begin_;
+      throw;
+    }
+  }
+}
+
+// 在尾部就地构建元素
+template <typename T>
+template <typename... Args>
+void Deque<T>::emplace_back(Args&&... args) {
+  if (end_.cur != end_.last - 1) {
+    data_allocator::construct(end_.cur, mystl::forward<Args>(args)...);
+    ++end_.cur;
+  } else {
+    require_capacity(1, false);
+    data_allocator::construct(end_.cur, mystl::forward<Args>(args)...);
+    ++end_;
+  }
+}
+
+// 在pos位置就地构建元素
+template <typename T>
+template <typename... Args>
+typename Deque<T>::iterator Deque<T>::emplace(iterator pos, Args&&... args) {
+  if (pos.cur == begin_.cur) {
+    emplace_front(mystl::forward<Args>(args)...);
+    return begin_;
+  }
+  if (pos.cur == end_.cur) {
+    emplace_back(mystl::forward<Args>(args)...);
+    return end_ - 1;
+  }
+  return insert_aux(pos, mystl::forward<Args>(args)...);
+}
+
+// 在头部插入元素
+template <typename T>
+void Deque<T>::push_front(const value_type& value) {
+  if (begin_.cur != begin_.first) {
+    data_allocator::construct(begin_.cur - 1, value);
+    --begin_.cur;
+  } else {
+    require_capacity(1, true);
+    try {
+      --begin_;
+      data_allocator::construct(begin_.cur, value);
+    } catch (...) {
+      ++begin_;
+      throw;
+    }
+  }
+}
+
+// 在尾部插入元素
+template <typename T>
+void Deque<T>::push_back(const value_type& value) {
+  if (end_.cur != end_.last - 1) {
+    data_allocator::construct(end_.cur, value);
+    ++end_.cur;
+  } else {
+    require_capacity(1, false);
+    data_allocator::construct(end_.cur, value);
+    ++end_;
+  }
+}
+
+// 弹出头部元素
+template <typename T>
+void Deque<T>::pop_front() {
+  MYSTL_DEBUG(!empty());
+  if (begin_.cur != begin_.last - 1) {
+    data_allocator::destroy(begin_.cur);
+    ++begin_.cur;
+  } else {
+    data_allocator::destroy(begin_.cur);
+    ++begin_;
+    destroy_buffer(begin_.node - 1, )
+  }
+}
 
 }  // namespace mystl
 
