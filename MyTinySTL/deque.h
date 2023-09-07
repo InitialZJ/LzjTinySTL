@@ -2,6 +2,7 @@
 #define MYTINYSTL_DEQUE_H_
 
 // deque：双端队列
+// 对应书4.4节
 
 // notes:
 //
