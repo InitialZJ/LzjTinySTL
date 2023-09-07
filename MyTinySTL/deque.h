@@ -733,6 +733,388 @@ void Deque<T>::create_buffer(map_pointer nstart, map_pointer nfinish) {
   }
 }
 
+// destroy_buffer函数
+template <typename T>
+void Deque<T>::destroy_buffer(map_pointer nstart, map_pointer nfinish) {
+  for (map_pointer n = nstart; n <= nfinish; ++n) {
+    data_allocator::deallocate(*n, kBufferSize);
+    *n = nullptr;
+  }
+}
+
+// map_init函数
+template <typename T>
+void Deque<T>::map_init(size_type nElem) {
+  const size_type nNode = nElem / kBufferSize + 1;
+  map_size_ = mystl::max(static_cast<size_type>(DEQUE_MAP_INIT_SIZE), nNode + 2);
+  try {
+    map_ = create_map(map_size_);
+  } catch (...) {
+    map_ = nullptr;
+    map_size_ = 0;
+    throw;
+  }
+
+  // 让nstart和nfinish都指向map_最中央的区域，方便向头尾扩充
+  map_pointer nstart = map_ + (map_size_ - nNode) / 2;
+  map_pointer nfinish = nstart + nNode - 1;
+  try {
+    create_buffer(nstart, nfinish);
+  } catch (...) {
+    map_allocator::deallocate(map_, map_size_);
+    map_ = nullptr;
+    map_size_ = 0;
+    throw;
+  }
+  begin_.set_node(nstart);
+  end_.set_node(nfinish);
+  begin_.cur = begin_.first;
+  end_.cur = end_.first + (nElem % kBufferSize);
+}
+
+// fill_init函数
+template <typename T>
+void Deque<T>::fill_init(size_type n, const value_type& value) {
+  map_init(n);
+  if (n != 0) {
+    map_init(n);
+    if (n != 0) {
+      for (auto cur = begin_.node; cur < end_.node; ++cur) {
+        mystl::uninitialized_fill(*cur, *cur + kBufferSize, value);
+      }
+      mystl::uninitialized_fill(end_.first, end_.cur, value);
+    }
+  }
+}
+
+// copy_init函数
+template <typename T>
+template <typename IIter>
+void Deque<T>::copy_init(IIter first, IIter last, InputIteratorTag /*unused*/) {
+  const size_type n = mystl::distance(first, last);
+  map_init(n);
+  for (; first != last; ++first) {
+    emplace_back(*first);
+  }
+}
+
+template <typename T>
+template <typename FIter>
+void Deque<T>::copy_init(FIter first, FIter last, ForwardIteratorTag /*unused*/) {
+  const size_type n = mystl::distance(first, last);
+  map_init(n);
+  for (auto cur = begin_.node; cur < end_.node; ++cur) {
+    auto next = first;
+    mystl::advance(next, kBufferSize);
+    mystl::uninitialized_copy(first, next, *cur);
+    first = next;
+  }
+  mystl::uninitialized_copy(first, last, end_.first);
+}
+
+// fill_assign函数
+template <typename T>
+void Deque<T>::fill_assign(size_type n, const value_type& value) {
+  if (n > size()) {
+    mystl::fill(begin(), end(), value);
+    insert(end(), n - size(), value);
+  } else {
+    erase(begin() + n, end());
+    mystl::fill(begin(), end(), value);
+  }
+}
+
+// copy_assign函数
+template <typename T>
+template <typename IIter>
+void Deque<T>::copy_assign(IIter first, IIter last, InputIteratorTag /*unused*/) {
+  auto first1 = begin();
+  auto last1 = end();
+  for (; first != last && first1 != last1; ++first, ++first1) {
+    *first1 = *first;
+  }
+  if (first1 != last1) {
+    erase(first1, last1);
+  } else {
+    insert_dispatch(end_, first, last, InputIteratorTag{});
+  }
+}
+
+template <typename T>
+template <typename FIter>
+void Deque<T>::copy_assign(FIter first, FIter last, ForwardIteratorTag /*unused*/) {
+  const size_type len1 = size();
+  const size_type len2 = mystl::distance(first, last);
+  if (len1 < len2) {
+    auto next = first;
+    mystl::advance(next, len1);
+    mystl::copy(first, next, begin_);
+    insert_dispatch(end_, next, last, ForwardIteratorTag{});
+  } else {
+    erase(mystl::copy(first, last, begin_), end_);
+  }
+}
+
+// insert_aux函数
+template <typename T>
+template <typename... Args>
+typename Deque<T>::iterator Deque<T>::insert_aux(iterator position, Args&&... args) {
+  const size_type elems_before = position - begin_;
+  value_type value_copy = value_type(mystl::forward<Args>(args)...);
+  if (elems_before < (size() / 2)) {
+    // 在前半段插入
+    emplace_front(begin());
+    auto front1 = begin_;
+    ++front1;
+    auto front2 = front1;
+    ++front2;
+    position = begin_ + elems_before;
+    auto pos = position;
+    ++pos;
+    mystl::copy(front2, pos, front1);
+  } else {
+    // 在后半段插入
+    emplace_back(back());
+    auto back1 = end_;
+    --back1;
+    auto back2 = back1;
+    --back2;
+    position = begin_ + elems_before;
+    mystl::copy_backward(position, back2, back1);
+  }
+  *position = mystl::move(value_copy);
+  return position;
+}
+
+// fill_insert函数
+template <typename T>
+void Deque<T>::fill_insert(iterator position, size_type n, const value_type& value) {
+  const size_type elems_before = position - begin_;
+  const size_type len = size();
+  auto value_copy = value;
+  if (elems_before < (len / 2)) {
+    require_capacity(n, true);
+    // 原来的迭代器可能会失效
+    auto old_begin = begin_;
+    auto new_begin = begin_ - n;
+    position = begin_ + elems_before;
+    try {
+      if (elems_before >= n) {
+        auto begin_n = begin_ + n;
+        mystl::uninitialized_copy(begin_, begin_n, new_begin);
+        begin_ = new_begin;
+        mystl::copy(begin_n, position, old_begin);
+        mystl::fill(position - n, position, value_copy);
+      } else {
+        mystl::uninitialized_fill(
+            mystl::unchecked_copy(begin_, position, new_begin), begin_, value_copy);
+        begin_ = new_begin;
+        mystl::fill(old_begin, position, value_copy);
+      }
+    } catch (...) {
+      if (new_begin.node != begin_.node) {
+        destroy_buffer(new_begin.node, begin_.node - 1);
+      }
+      throw;
+    }
+  } else {
+    require_capacity(n, false);
+    // 原来的迭代器可能会失效
+    auto old_end = end_;
+    auto new_end = end_ + n;
+    const size_type elems_after = len - elems_before;
+    position = end_ - elems_after;
+    try {
+      if (elems_after > n) {
+        auto end_n = end_ - n;
+        mystl::uninitialized_copy(end_n, end_, end_);
+        end_ = new_end;
+        mystl::copy_backward(position, end_n, old_end);
+        mystl::fill(position, position + n, value_copy);
+      } else {
+        mystl::uninitialized_fill(end_, position + n, value_copy);
+        mystl::uninitialized_copy(position, end_, position + n);
+        end_ = new_end;
+        mystl::fill(position, old_end, value_copy);
+      }
+    } catch (...) {
+      if (new_end.node != end_.node) {
+        destroy_buffer(end_.node + 1, new_end.node);
+      }
+      throw;
+    }
+  }
+}
+
+// copy_insert
+template <typename T>
+template <typename FIter>
+void Deque<T>::copy_insert(iterator position, FIter first, FIter last, size_type n) {
+  const size_type elems_before = position - begin_;
+  auto len = size();
+  if (elems_before < (len / 2)) {
+    require_capacity(n, true);
+    // 原来的迭代器可能会失效
+    auto old_begin = begin_;
+    auto new_begin = begin_ - n;
+    position = begin_ + elems_before;
+    try {
+      if (elems_before >= n) {
+        auto begin_n = begin_ + n;
+        mystl::uninitialized_copy(begin_, begin_n, new_begin);
+        begin_ = new_begin;
+        mystl::copy(begin_n, position, old_begin);
+        mystl::copy(first, last, position - n);
+      } else {
+        auto mid = first;
+        mystl::advance(mid, n - elems_before);
+        mystl::uninitialized_copy(
+            first, mid, mystl::uninitialized_copy(begin_, position, new_begin));
+        begin_ = new_begin;
+        mystl::copy(mid, last, old_begin);
+      }
+    } catch (...) {
+      if (new_begin.node != begin_.node) {
+        destroy_buffer(new_begin.node, begin_.node - 1);
+      }
+      throw;
+    }
+  } else {
+    require_capacity(n, false);
+    // 原来的迭代器可能会失效
+    auto old_end = end_;
+    auto new_end = end_ + n;
+    const auto elems_after = len - elems_before;
+    position = end_ - elems_after;
+    try {
+      if (elems_after > n) {
+        auto end_n = end_ - n;
+        mystl::uninitialized_copy(end_n, end_, end_);
+        end_ = new_end;
+        mystl::copy_backward(position, end_n, old_end);
+        mystl::copy(first, last, position);
+      } else {
+        auto mid = first;
+        mystl::advance(mid, elems_after);
+        mystl::uninitialized_copy(position, end_, mystl::uninitialized_copy(mid, last, end_));
+        end_ = new_end;
+        mystl::copy(first, mid, position);
+      }
+    } catch (...) {
+      if (new_end.node != end_.node) {
+        destroy_buffer(end_.node + 1, new_end.node);
+      }
+      throw;
+    }
+  }
+}
+
+// insert_dispatch函数
+template <typename T>
+template <typename IIter>
+void Deque<T>::insert_dispatch(
+    iterator position, IIter first, IIter last, InputIteratorTag /*unused*/) {
+  if (last <= first) {
+    return;
+  }
+  const size_type n = mystl::distance(first, last);
+  const size_type elems_before = position - begin_;
+  if (elems_before < (size() / 2)) {
+    require_capacity(n, true);
+  } else {
+    require_capacity(n, false);
+  }
+  position = begin_ + elems_before;
+  auto cur = --last;
+  for (size_type i = 0; i < n; ++i, --cur) {
+    // TODO(lzj): 顺序为什么是这样
+    insert(position, *cur);
+  }
+}
+
+template <typename T>
+template <typename FIter>
+void Deque<T>::insert_dispatch(
+    iterator position, FIter first, FIter last, ForwardIteratorTag /*unused*/) {
+  if (last <= first) {
+    return;
+  }
+  const size_type n = mystl::distance(first, last);
+  if (position.cur == begin_.cur) {
+    require_capacity(n, true);
+    auto new_begin = begin_ - n;
+    try {
+      mystl::uninitialized_copy(first, last, new_begin);
+      begin_ = new_begin;
+    } catch (...) {
+      if (new_begin.node != begin_.node) {
+        destroy_buffer(new_begin.node, begin_.node - 1);
+      }
+      throw;
+    }
+  } else if (position.cur == end_.cur) {
+    require_capacity(n, false);
+    auto new_end = end_ + n;
+    try {
+      mystl::uninitialized_copy(first, last, end_);
+      end_ = new_end;
+    } catch (...) {
+      if (new_end.node != end_.node) {
+        destroy_buffer(end_.node + 1, new_end.node);
+      }
+      throw;
+    }
+  } else {
+    copy_insert(position, first, last, n);
+  }
+}
+
+// require_capacity函数
+template <typename T>
+void Deque<T>::require_capacity(size_type n, bool front) {
+  if (front && (static_cast<size_type>(begin_.cur - begin_.first) < n)) {
+    const size_type need_buffer = (n - (begin_.cur - begin_.first)) / kBufferSize + 1;
+    if (need_buffer > static_cast<size_type>(begin_.node - map_)) {
+      reallocate_map_at_front(need_buffer);
+      return;
+    }
+    create_buffer(begin_.node - need_buffer, begin_.node - 1);
+  } else if (!front && (static_cast<size_type>(end_.last - end_.cur - 1) < n)) {
+    const size_type need_buffer = (n - (end_.last - end_.cur - 1)) / kBufferSize + 1;
+    if (need_buffer > static_cast<size_type>((map_ + map_size_) - end_.node - 1)) {
+      reallocate_map_at_back(need_buffer);
+      return;
+    }
+    create_buffer(end_.node + 1, end_.node + need_buffer);
+  }
+}
+
+// reallocate_map_at_front函数
+template <typename T>
+void Deque<T>::reallocate_map_at_front(size_type need_buffer) {
+  const size_type new_map_size =
+      mystl::max(map_size_ << 1, map_size_ + need_buffer + DEQUE_MAP_INIT_SIZE);
+  map_pointer new_map = create_map(new_map_size);
+  const size_type old_buffer = end_.node - begin_.node + 1;
+  const size_type new_buffer = old_buffer + need_buffer;
+
+  // 另新的map中的指针指向原来的buffer
+  auto begin = new_map + (new_map_size - new_buffer) / 2;
+  auto mid = begin + need_buffer;
+  auto end = mid + old_buffer;
+  create_buffer(begin, mid - 1);
+  for (auto begin1 = mid, begin2 = begin_.node; begin1 != end; ++begin1, ++begin2) {
+    *begin1 = *begin2;
+  }
+
+  // 更新数据
+  map_allocator::deallocate(map_, map_size_);
+  map_ = new_map;
+  map_size_ = new_map_size;
+  begin_ = iterator(*begin + (begin_.cur - begin_.first), begin);
+  end_ = iterator(*(mid - 1) + (end_.cur - end_.first), mid - 1);
+}
+
 }  // namespace mystl
 
 #endif  // ! MYTINYSTL_DEQUE_H_
