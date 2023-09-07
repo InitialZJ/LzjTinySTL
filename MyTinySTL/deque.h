@@ -16,6 +16,7 @@
 
 #include <initializer_list>
 
+#include "algobase.h"
 #include "exceptdef.h"
 #include "iterator.h"
 #include "memory.h"
@@ -1098,7 +1099,7 @@ void Deque<T>::reallocate_map_at_front(size_type need_buffer) {
   const size_type old_buffer = end_.node - begin_.node + 1;
   const size_type new_buffer = old_buffer + need_buffer;
 
-  // 另新的map中的指针指向原来的buffer
+  // 另新的map中的指针指向原来的buffer，并开辟新的buffer
   auto begin = new_map + (new_map_size - new_buffer) / 2;
   auto mid = begin + need_buffer;
   auto end = mid + old_buffer;
@@ -1113,6 +1114,68 @@ void Deque<T>::reallocate_map_at_front(size_type need_buffer) {
   map_size_ = new_map_size;
   begin_ = iterator(*begin + (begin_.cur - begin_.first), begin);
   end_ = iterator(*(mid - 1) + (end_.cur - end_.first), mid - 1);
+}
+
+// reallocate_map_at_back函数
+template <typename T>
+void Deque<T>::reallocate_map_at_back(size_type need_buffer) {
+  const size_type new_map_size =
+      mystl::max(map_size_ << 1, map_size_ + need_buffer + DEQUE_MAP_INIT_SIZE);
+  map_pointer new_map = create_map(new_map_size);
+  const size_type old_buffer = end_.node - begin_.node + 1;
+  const size_type new_buffer = old_buffer + need_buffer;
+
+  // 另新的map中的指针指向原来的buffer，并开辟新的buffer
+  auto begin = new_map + ((new_map_size - new_buffer) / 2);
+  auto mid = begin + old_buffer;
+  auto end = mid + need_buffer;
+  for (auto begin1 = begin, begin2 = begin_.node; begin1 != mid; ++begin1, ++begin2) {
+    *begin1 = *begin2;
+  }
+  create_buffer(mid, end - 1);
+
+  // 更新数据
+  map_allocator::deallocate(map_, map_size_);
+  map_ = new_map;
+  map_size_ = new_map_size;
+  begin_ = iterator(*begin + (begin_.cur - begin_.first), begin);
+  end_ = iterator(*(mid - 1) + (end_.cur - end_.first), mid - 1);
+}
+
+// 重载比较操作符
+template <typename T>
+bool operator==(const Deque<T>& lhs, const Deque<T>& rhs) {
+  return lhs.size() == rhs.size() && mystl::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
+
+template <typename T>
+bool operator<(const Deque<T>& lhs, const Deque<T>& rhs) {
+  return mystl::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+template <typename T>
+bool operator!=(const Deque<T>& lhs, const Deque<T>& rhs) {
+  return !(lhs == rhs);
+}
+
+template <typename T>
+bool operator>(const Deque<T>& lhs, const Deque<T>& rhs) {
+  return rhs < lhs;
+}
+
+template <typename T>
+bool operator<=(const Deque<T>& lhs, const Deque<T>& rhs) {
+  return !(rhs > lhs);
+}
+
+template <typename T>
+bool operator>=(const Deque<T>& lhs, const Deque<T>& rhs) {
+  return !(lhs < rhs);
+}
+
+template <typename T>
+void swap(Deque<T>& lhs, Deque<T>& rhs) {
+  lhs.swap(rhs);
 }
 
 }  // namespace mystl
