@@ -6,22 +6,6 @@
 
 #IncludeRegexTransform: 
 
-../MyTinySTL/functional.h
-cstddef
--
-
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algo.h
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-cstddef
--
-ctime
--
-algobase.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
-memory.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
-
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
 cstring
 -
@@ -46,6 +30,20 @@ type_traits.h
 util.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/deque.h
+initializer_list
+-
+algobase.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
+exceptdef.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
+iterator.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
+memory.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
+util.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
+
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
 cassert
 -
@@ -57,26 +55,6 @@ cstddef
 -
 type_traits.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
-
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/list.h
-initializer_list
--
-type_traits
--
-algobase.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
-allocator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/allocator.h
-exceptdef.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
-functional.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/functional.h
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-memory.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
-util.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
 climits
@@ -110,26 +88,6 @@ cstddef
 type_traits.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
 
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/vector.h
-initializer_list
--
-system_error
--
-algo.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algo.h
-algobase.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
-allocator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/allocator.h
-exceptdef.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-memory.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
-util.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
-
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/io/color.h
 ../platform.h
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/platform.h
@@ -150,15 +108,11 @@ type_traits
 
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/platform.h
 
-/home/lzj/Desktop/LzjTinySTL/Test/list_test.h
-ios
+/home/lzj/Desktop/LzjTinySTL/Test/deque_test.h
+deque
 -
-list
--
-../MyTinySTL/list.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/list.h
-functional.h
-/home/lzj/Desktop/LzjTinySTL/Test/functional.h
+../MyTinySTL/deque.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/deque.h
 test.h
 /home/lzj/Desktop/LzjTinySTL/Test/test.h
 
@@ -167,10 +121,8 @@ crtdbg.h
 -
 stdlib.h
 -
-list_test.h
-/home/lzj/Desktop/LzjTinySTL/Test/list_test.h
-vector_test.h
-/home/lzj/Desktop/LzjTinySTL/Test/vector_test.h
+deque_test.h
+/home/lzj/Desktop/LzjTinySTL/Test/deque_test.h
 
 /home/lzj/Desktop/LzjTinySTL/Test/test.h
 cstdio
@@ -191,12 +143,4 @@ vector
 -
 Lib/redbud/io/color.h
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/io/color.h
-
-/home/lzj/Desktop/LzjTinySTL/Test/vector_test.h
-vector
--
-../MyTinySTL/vector.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/vector.h
-test.h
-/home/lzj/Desktop/LzjTinySTL/Test/test.h
 

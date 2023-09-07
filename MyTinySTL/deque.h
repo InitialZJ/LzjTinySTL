@@ -190,7 +190,7 @@ class Deque {
  public:
   using allocator_type = mystl::Allocator<T>;
   using data_allocator = mystl::Allocator<T>;
-  using map_allocator = mystl::Allocator<T>;
+  using map_allocator = mystl::Allocator<T*>;
 
   using value_type = typename allocator_type::value_type;
   using pointer = typename allocator_type::pointer;
@@ -218,11 +218,11 @@ class Deque {
   size_type map_size_;  // map内指针的数目
 
  public:
-  Deque() { fill_insert(0, value_type()); }
+  Deque() { fill_init(0, value_type()); }
 
-  explicit Deque(size_type n) { fill_insert(n, value_type()); }
+  explicit Deque(size_type n) { fill_init(n, value_type()); }
 
-  Deque(size_type n, const value_type& value) { fill_insert(n, value); }
+  Deque(size_type n, const value_type& value) { fill_init(n, value); }
 
   template <
       typename IIter,
@@ -626,14 +626,14 @@ void Deque<T>::insert(iterator position, size_type n, const value_type& value) {
     auto new_begin = begin_ - n;
     mystl::uninitialized_fill_n(new_begin, n, value);
     begin_ = new_begin;
-  }
-  if (position.cur == end_.cur) {
+  } else if (position.cur == end_.cur) {
     require_capacity(n, false);
     auto new_end = end_ + n;
     mystl::uninitialized_fill_n(end_, n, value);
     end_ = new_end;
+  } else {
+    return fill_insert(position, n, value);
   }
-  return fill_insert(position, n, value);
 }
 
 // 删除position处的元素
@@ -864,7 +864,7 @@ typename Deque<T>::iterator Deque<T>::insert_aux(iterator position, Args&&... ar
   value_type value_copy = value_type(mystl::forward<Args>(args)...);
   if (elems_before < (size() / 2)) {
     // 在前半段插入
-    emplace_front(begin());
+    emplace_front(front());
     auto front1 = begin_;
     ++front1;
     auto front2 = front1;
@@ -1112,8 +1112,8 @@ void Deque<T>::reallocate_map_at_front(size_type need_buffer) {
   map_allocator::deallocate(map_, map_size_);
   map_ = new_map;
   map_size_ = new_map_size;
-  begin_ = iterator(*begin + (begin_.cur - begin_.first), begin);
-  end_ = iterator(*(mid - 1) + (end_.cur - end_.first), mid - 1);
+  begin_ = iterator(*mid + (begin_.cur - begin_.first), mid);
+  end_ = iterator(*(end - 1) + (end_.cur - end_.first), end - 1);
 }
 
 // reallocate_map_at_back函数
