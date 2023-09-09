@@ -8,12 +8,13 @@ Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/deque.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/exceptdef.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/iterator.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/memory.h
+Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/stack.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/type_traits.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/uninitialized.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/util.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/Lib/redbud/io/color.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/Lib/redbud/platform.h
-Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/deque_test.h
+Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/stack_test.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/test.cpp
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/test.h
 

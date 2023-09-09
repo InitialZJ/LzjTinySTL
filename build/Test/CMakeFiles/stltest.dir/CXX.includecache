@@ -72,6 +72,10 @@ construct.h
 uninitialized.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/uninitialized.h
 
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/stack.h
+deque.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/deque.h
+
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
 type_traits
 -
@@ -108,11 +112,11 @@ type_traits
 
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/platform.h
 
-/home/lzj/Desktop/LzjTinySTL/Test/deque_test.h
-deque
+/home/lzj/Desktop/LzjTinySTL/Test/stack_test.h
+stack
 -
-../MyTinySTL/deque.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/deque.h
+../MyTinySTL/stack.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/stack.h
 test.h
 /home/lzj/Desktop/LzjTinySTL/Test/test.h
 
@@ -121,8 +125,8 @@ crtdbg.h
 -
 stdlib.h
 -
-deque_test.h
-/home/lzj/Desktop/LzjTinySTL/Test/deque_test.h
+stack_test.h
+/home/lzj/Desktop/LzjTinySTL/Test/stack_test.h
 
 /home/lzj/Desktop/LzjTinySTL/Test/test.h
 cstdio
