@@ -8,11 +8,12 @@
 // 对应书4.8节
 
 #include <initializer_list>
+#include <type_traits>
 
 #include "deque.h"
 #include "functional.h"
+#include "heap_algo.h"
 #include "vector.h"
-// #include "heap_algo.h"
 
 namespace mystl {
 
@@ -152,6 +153,157 @@ void swap(Queue<T, Container>& lhs, Queue<T, Container>& rhs) noexcept(noexcept(
 
 // 模板类 priority_queue
 // 参数一代表数据类型，参数二代表容器类型，缺省使用mystl::Vector作为底层容器
-// 参数三代表比较权值的方式，缺省使用mystl::less作为比较方式
+// 参数三代表比较权值的方式，缺省使用mystl::Less作为比较方式
+template <
+    typename T,
+    typename Container = mystl::Vector<T>,
+    typename Compare = mystl::Less<typename Container::value_type>>
+class PriorityQueue {
+ public:
+  using container_type = Container;
+  using value_compare = Compare;
+  using value_type = typename Container::value_type;
+  using size_type = typename Container::size_type;
+  using reference = typename Container::reference;
+  using const_reference = typename Container::const_reference;
+
+  static_assert(
+      std::is_same<T, value_type>::value, "the value_type of Container should be same with T");
+
+ private:
+  container_type c_;
+  value_compare comp_;
+
+ public:
+  // 构造、复制、移动函数
+  PriorityQueue() = default;
+
+  PriorityQueue(const Compare& c) : c_(), comp_(c) {}
+
+  explicit PriorityQueue(size_type n) : c_(n) { mystl::make_heap(c_.begin(), c_.end(), comp_); }
+
+  PriorityQueue(size_type n, const value_type& value) : c_(n, value) {
+    mystl::make_heap(c_.begin(), c_.end(), comp_);
+  }
+
+  template <typename IIter>
+  PriorityQueue(IIter first, IIter last) : c_(first, last) {
+    mystl::make_heap(c_.begin(), c_.end(), comp_);
+  }
+
+  PriorityQueue(std::initializer_list<T> ilist) : c_(ilist) {
+    mystl::make_heap(c_.begin(), c_.end(), comp_);
+  }
+
+  PriorityQueue(const Container& s) : c_(s) { mystl::make_heap(c_.begin(), c_.end(), comp_); }
+
+  PriorityQueue(Container&& s) : c_(mystl::move(s)) {
+    mystl::make_heap(c_.begin(), c_.end(), comp_);
+  }
+
+  PriorityQueue(const PriorityQueue& rhs) : c_(rhs.c_), comp_(rhs.comp_) {
+    mystl::make_heap(c_.begin(), c_.end(), comp_);
+  }
+
+  PriorityQueue(PriorityQueue&& rhs) : c_(mystl::move(rhs.c_)), comp_(rhs.comp_) {
+    mystl::make_heap(c_.begin(), c_.end(), comp_);
+  }
+
+  PriorityQueue& operator=(const PriorityQueue& rhs) {
+    c_ = rhs.c_;
+    comp_ = rhs.comp_;
+    mystl::make_heap(c_.begin(), c_.end(), comp_);
+    return *this;
+  }
+
+  PriorityQueue& operator=(PriorityQueue&& rhs) {
+    c_ = mystl::move(rhs.c_);
+    comp_ = rhs.comp_;
+    mystl::make_heap(c_.begin(), c_.end(), comp_);
+    return *this;
+  }
+
+  PriorityQueue& operator=(std::initializer_list<T> ilist) {
+    c_ = ilist;
+    comp_ = value_compare();
+    mystl::make_heap(c_.begin(), c_.end(), comp_);
+    return *this;
+  }
+
+  ~PriorityQueue() = default;
+
+ public:
+  // 访问元素相关操作
+  const_reference top() const { return c_.front(); }
+
+  // 容量相关操作
+  bool empty() const noexcept { return c_.empty(); }
+  size_type size() const noexcept { return c_.size(); }
+
+  // 修改容器相关操作
+  template <typename... Args>
+  void emplace(Args&&... args) {
+    c_.emplace_back(mystl::forward<Args>(args)...);
+    mystl::push_heap(c_.begin(), c_.end(), comp_);
+  }
+
+  void push(const value_type& value) {
+    c_.push_back(value);
+    mystl::push_heap(c_.begin(), c_.end(), comp_);
+  }
+
+  void push(value_type&& value) {
+    c_.push_back(mystl::move(value));
+    mystl::push_heap(c_.begin(), c_.end(), comp_);
+  }
+
+  void pop() {
+    mystl::pop_heap(c_.begin(), c_.end(), comp_);
+    c_.pop_back();
+  }
+
+  void clear() {
+    while (!empty()) {
+      pop();
+    }
+  }
+
+  void swap(PriorityQueue& rhs) noexcept(
+      noexcept(mystl::swap(c_, rhs.c_)) && noexcept(mystl::swap(comp_, rhs.comp_))) {
+    mystl::swap(c_, rhs.c_);
+    mystl::swap(comp_, rhs.comp_);
+  }
+
+ public:
+  friend bool operator==(const PriorityQueue& lhs, const PriorityQueue& rhs) {
+    return lhs.c_ == rhs.c_;
+  }
+
+  friend bool operator!=(const PriorityQueue& lhs, const PriorityQueue& rhs) {
+    return !(lhs.c_ == rhs.c_);
+  }
+};
+
+// 重载比较操作符
+template <typename T, typename Container, typename Compare>
+bool operator==(
+    PriorityQueue<T, Container, Compare>& lhs, PriorityQueue<T, Container, Compare>& rhs) {
+  return lhs == rhs;
+}
+
+template <typename T, typename Container, typename Compare>
+bool operator!=(
+    PriorityQueue<T, Container, Compare>& lhs, PriorityQueue<T, Container, Compare>& rhs) {
+  return !(lhs == rhs);
+}
+
+template <typename T, typename Container, typename Compare>
+bool swap(
+    PriorityQueue<T, Container, Compare>& lhs,
+    PriorityQueue<T, Container, Compare>& rhs) noexcept(noexcept(lhs.swap(rhs))) {
+  lhs.swap(rhs);
+}
 
 }  // namespace mystl
+
+#endif  // ! MYTINYSTL_QUEUE_H_

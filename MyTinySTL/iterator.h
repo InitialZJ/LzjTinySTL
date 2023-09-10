@@ -134,7 +134,7 @@ typename IteratorTraits<Iterator>::iterator_category iterator_category(const Ite
 
 // 萃取某个迭代器的distance_type
 template <typename Iterator>
-typename IteratorTraits<Iterator>::difference_type* difference_type(const Iterator& /*unused*/) {
+typename IteratorTraits<Iterator>::difference_type* distance_type(const Iterator& /*unused*/) {
   return static_cast<typename IteratorTraits<Iterator>::difference_type*>(0);
 }
 

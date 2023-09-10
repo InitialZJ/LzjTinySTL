@@ -16,4 +16,4 @@
 | deque      | 100%  | 100% |
 | stack      | 100%  | 100% |
 | queue      | 100%  | 0% |
-| priority_queue      | 0%  | 0% |
+| priority_queue      | 100%  | 0% |
