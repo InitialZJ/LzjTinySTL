@@ -13,9 +13,9 @@
 // #include "deque_test.h"
 // #include "list_test.h"
 // #include "map_test.h"
-// #include "queue_test.h"
+#include "queue_test.h"
 // #include "set_test.h"
-#include "stack_test.h"
+// #include "stack_test.h"
 // #include "string_test.h"
 // #include "unordered_map_test.h"
 // #include "unordered_set_test.h"
@@ -32,8 +32,8 @@ int main() {
   // list_test::list_test();
   // deque_test::deque_test();
   // queue_test::queue_test();
-  // queue_test::priority_test();
-  stack_test::stack_test();
+  queue_test::priority_test();
+  // stack_test::stack_test();
   // map_test::map_test();
   // map_test::multimap_test();
   // set_test::set_test();

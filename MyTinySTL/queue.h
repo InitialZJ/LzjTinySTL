@@ -298,7 +298,7 @@ bool operator!=(
 }
 
 template <typename T, typename Container, typename Compare>
-bool swap(
+void swap(
     PriorityQueue<T, Container, Compare>& lhs,
     PriorityQueue<T, Container, Compare>& rhs) noexcept(noexcept(lhs.swap(rhs))) {
   lhs.swap(rhs);
