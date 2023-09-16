@@ -347,7 +347,6 @@ void rb_tree_set_red(NodePtr node) noexcept {
 
 template <typename NodePtr>
 NodePtr rb_tree_next(NodePtr node) noexcept {
-  // TODO(lzj): 和inc()有何区别
   if (node->right != nullptr) {
     return rb_tree_min(node->right);
   }
@@ -355,6 +354,137 @@ NodePtr rb_tree_next(NodePtr node) noexcept {
     node = node->parent;
   }
   return node->parent;
+}
+
+/*---------------------------------------*\
+|       p                         p       |
+|      / \                       / \      |
+|     x   d    rotate left      y   d     |
+|    / \       ===========>    / \        |
+|   a   y                     x   c       |
+|      / \                   / \          |
+|     b   c                 a   b         |
+\*---------------------------------------*/
+// 左旋，参数一为左旋点，参数二为根节点
+template <typename NodePtr>
+void rb_tree_rotate_left(NodePtr x, NodePtr& root) noexcept {
+  auto y = x->right;
+  x->right = y->left;
+  if (y->left != nullptr) {
+    y->left->parent = x;
+  }
+  y->parent = x->parent;
+
+  if (x == root) {
+    // 如果x为根结点，让y顶替x成为根结点
+    root = y;
+  } else if (rb_tree_is_lchild(x)) {
+    // 如果x为左结点
+    x->parent->left = y;
+  } else {
+    // 如果x为右结点
+    x->parent->right = y;
+  }
+
+  // 调整x与y的关系
+  y->left = y;
+  x->parent = y;
+}
+
+/*----------------------------------------*\
+|     p                         p          |
+|    / \                       / \         |
+|   d   x      rotate right   d   y        |
+|      / \     ===========>      / \       |
+|     y   a                     b   x      |
+|    / \                           / \     |
+|   b   c                         c   a    |
+\*----------------------------------------*/
+// 右旋，参数一为右旋点，参数二为根节点
+template <typename NodePtr>
+void rb_tree_rotate_right(NodePtr x, NodePtr& root) noexcept {
+  auto y = x->left;
+  x->left = y->right;
+  if (y->right) {
+    y->right->parent = x;
+  }
+  y->parent = x->parent;
+
+  if (x == root) {
+    root = y;
+  } else if (rb_tree_is_lchild(x)) {
+    x->parent->left = y;
+  } else {
+    x->parent->right = y;
+  }
+  y->right = x;
+  x->parent = y;
+}
+
+// 插入节点后使 rb tree 重新平衡，参数一为新增节点，参数二为根节点
+//
+// case 1: 新增节点位于根节点，令新增节点为黑
+// case 2: 新增节点的父节点为黑，没有破坏平衡，直接返回
+// case 3: 父节点和叔叔节点都为红，令父节点和叔叔节点为黑，祖父节点为红，
+//         然后令祖父节点为当前节点，继续处理
+// case 4: 父节点为红，叔叔节点为 NIL 或黑色，父节点为左（右）孩子，当前节点为右（左）孩子，
+//         让父节点成为当前节点，再以当前节点为支点左（右）旋
+// case 5: 父节点为红，叔叔节点为 NIL 或黑色，父节点为左（右）孩子，当前节点为左（右）孩子，
+//         让父节点变为黑色，祖父节点变为红色，以祖父节点为支点右（左）旋
+//
+// 参考博客: http://blog.csdn.net/v_JULY_v/article/details/6105630
+//          http://blog.csdn.net/v_JULY_v/article/details/6109153
+template <typename NodePtr>
+void rb_tree_insert_rebalance(NodePtr x, NodePtr& root) noexcept {
+  rb_tree_set_red(x);  // 新增结点为红色
+  while (x != root && rb_tree_is_red(x->parent)) {
+    if (rb_tree_is_lchild(x->parent)) {
+      // 如果父结点是左子结点
+      auto uncle = x->parent->parent->right;
+      if (uncle != nullptr && rb_tree_is_red(uncle)) {
+        // case 3
+        rb_tree_set_black(x->parent);
+        rb_tree_set_black(uncle);
+        x = x->parent->parent;
+        rb_tree_set_red(x);
+      } else {
+        // 无叔叔结点或者叔叔结点为黑
+        if (!rb_tree_is_lchild(x)) {
+          // case 4
+          x = x->parent;
+          rb_tree_rotate_left(x, root);
+        }
+        // 都转为case 5
+        rb_tree_set_black(x->parent);
+        rb_tree_set_red(x->parent->parent);
+        rb_tree_rotate_right(x->parent->parent, &root);
+        break;
+      }
+    } else {
+      // 如果父结点是右结点，对称处理
+      auto uncle = x->parent->parent->left;
+      if (uncle != nullptr && rb_tree_is_red(uncle)) {
+        // case 3
+        rb_tree_set_black(x->parent);
+        rb_tree_set_black(uncle);
+        x = x->parent->parent;
+        rb_tree_set_red(x);
+      } else {
+        // 无叔叔结点或者叔叔结点为黑
+        if (!rb_tree_is_lchild(x)) {
+          // case 4
+          x = x->parent;
+          rb_tree_rotate_right(x, root);
+        }
+        // 都转为case 5
+        rb_tree_set_black(x->parent);
+        rb_tree_set_red(x->parent->parent);
+        rb_tree_rotate_left(x->parent->parent, &root);
+        break;
+      }
+    }
+  }
+  rb_tree_set_black(root);  // 根结点永远为黑
 }
 
 }  // namespace mystl
