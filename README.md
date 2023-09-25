@@ -1,6 +1,6 @@
 # LzjTinySTL
 
-原作者仓库地址：https://github.com/zouxiaohang/TinySTL
+原作者仓库地址：https://github.com/Alinshans/MyTinySTL
 
 每个C++选手都必须仿写的项目
 
