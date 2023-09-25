@@ -800,7 +800,101 @@ class RbTree {
   void erase(iterator first, iterator last);
 
   void clear();
+
+  // rb_tree相关操作
+  iterator find(const key_type& key);
+  const_iterator find(const key_type& key) const;
+
+  size_type count_multi(const key_type& key) const {
+    auto p = equal_range_multi(key);
+    return static_cast<size_type>(mystl::distance(p.first, p.last));
+  }
+  size_type count_unique(const key_type& key) const { return find(key) != end() ? 1 : 0; }
+
+  iterator lower_bound(const key_type& key);
+  const_iterator lower_bound(const key_type& key) const;
+
+  iterator upper_bound(const key_type& key);
+  const_iterator upper_bound(const key_type& key) const;
+
+  mystl::pair<iterator, iterator> equal_range_multi(const key_type& key) {
+    return mystl::pair<iterator, iterator>(lower_bound(key), upper_bound(key));
+  }
+  mystl::pair<const_iterator, const_iterator> equal_range_multi(const key_type& key) const {
+    return mystl::pair<const_iterator, const_iterator>(lower_bound(key), upper_bound(key));
+  }
+
+  mystl::pair<iterator, iterator> equal_range_unique(const key_type& key) {
+    iterator it = find(key);
+    auto next = it;
+    return it == end() ? mystl::make_pair(it, it) : mystl::make_pair(it, ++next);
+  }
+  mystl::pair<const_iterator, const_iterator> equal_range_unique(const key_type& key) const {
+    iterator it = find(key);
+    auto next = it;
+    return it == end() ? mystl::make_pair(it, it) : mystl::make_pair(it, ++next);
+  }
+
+  void swap(RbTree& rhs) noexcept;
+
+ private:
+  // node related
+  template <typename... Args>
+  node_ptr create_node(Args&&... args);
+  node_ptr clone_node(base_ptr);
+  void destroy_node(node_ptr p);
+
+  // init / reset
+  void rb_tree_init();
+  void reset();
+
+  // get insert pos
+  mystl::pair<base_ptr, bool> get_insert_multi_pos(const key_type& key);
+  mystl::pair<mystl::pair<base_ptr, bool>, bool> get_insert_unique_pos(const key_type& key);
+
+  // insert value / insert node
+  iterator insert_value_at(base_ptr x, const value_type& value, bool add_to_left);
+  iterator insert_node_at(base_ptr x, node_ptr node, bool add_to_left);
+
+  // insert use hint
+  iterator insert_multi_use_hint(iterator hint, key_type key, node_ptr node);
+  iterator insert_unique_use_hint(iterator hint, key_type key, node_ptr node);
+
+  // copy tree / erase tree
+  base_ptr copy_from(base_ptr x, base_ptr p);
+  void erase_since(base_ptr x);
 };
+
+// 复制构造函数
+template <typename T, typename Compare>
+RbTree<T, Compare>::RbTree(const RbTree& rhs) {
+  rb_tree_init();
+  if (rhs.node_count_ != 0) {
+    root() = copy_from(rhs.root(), header_);
+    leftmost() = rb_tree_min(root());
+    rightmost() = rb_tree_max(root());
+  }
+  node_count_ = rhs.node_count_;
+  key_comp_ = rhs.key_comp_;
+}
+
+// 移动构造函数
+template <typename T, typename Compare>
+RbTree<T, Compare>& RbTree<T, Compare>::operator=(const RbTree& rhs) {
+  if (this != &rhs) {
+    clear();
+
+    if (rhs.node_count_ != 0) {
+      root() = copy_from(rhs.root(), header_);
+      leftmost() = rb_tree_min(root());
+      rightmost() = rb_tree_max(root());
+    }
+
+    node_count_ = rhs.node_count_;
+    key_comp_ = rhs.key_comp_;
+  }
+  return *this;
+}
 
 }  // namespace mystl
 
