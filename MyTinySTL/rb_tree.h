@@ -8,6 +8,7 @@
 #include <cassert>
 #include <initializer_list>
 
+#include "algobase.h"
 #include "allocator.h"
 #include "exceptdef.h"
 #include "functional.h"
@@ -880,6 +881,13 @@ RbTree<T, Compare>::RbTree(const RbTree& rhs) {
 
 // 移动构造函数
 template <typename T, typename Compare>
+RbTree<T, Compare>::RbTree(RbTree&& rhs) noexcept
+    : header_(mystl::move(rhs.header_)), node_count_(rhs.node_count_), key_comp_(rhs.key_comp_) {
+  rhs.reset();
+}
+
+// 复制赋值操作符
+template <typename T, typename Compare>
 RbTree<T, Compare>& RbTree<T, Compare>::operator=(const RbTree& rhs) {
   if (this != &rhs) {
     clear();
@@ -894,6 +902,385 @@ RbTree<T, Compare>& RbTree<T, Compare>::operator=(const RbTree& rhs) {
     key_comp_ = rhs.key_comp_;
   }
   return *this;
+}
+
+// 移动赋值操作符
+template <typename T, typename Compare>
+RbTree<T, Compare>& RbTree<T, Compare>::operator=(RbTree&& rhs) {
+  clear();
+  header_ = mystl::move(rhs.header_);
+  node_count_ = rhs.node_count_;
+  key_comp_ = rhs.key_comp_;
+  rhs.reset();
+  return *this;
+}
+
+// 就地插入元素，键值允许重复
+template <typename T, typename Compare>
+template <typename... Args>
+typename RbTree<T, Compare>::iterator RbTree<T, Compare>::emplace_multi(Args&&... args) {
+  THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1, "RbTree<T, Comp>'s size too big");
+  node_ptr np = create_node(mystl::forward<Args>(args)...);
+  auto res = get_insert_multi_pos(value_traits::get_key(np->value));
+  return insert_node_at(res.first, np, res.second);
+}
+
+// 就地插入元素，键值不允许重复
+template <typename T, typename Compare>
+template <typename... Args>
+mystl::pair<typename RbTree<T, Compare>::iterator, bool> RbTree<T, Compare>::emplace_unique(
+    Args&&... args) {
+  THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1, "RbTree<T, Comp>'s size too big");
+  node_ptr np = create_node(mystl::forward<Args>(args)...);
+  auto res = get_insert_unique_pos(value_traits::get_key(np->value));
+  if (res.second) {
+    // 插入成功
+    return mystl::make_pair(insert_node_at(res.first.first, np, res.first.second), true);
+  }
+  destroy_node(np);
+  return mystl::make_pair(iterator(res.first.first), false);
+}
+
+// 就地插入元素，键值允许重复，当hint位置与插入位置接近时，，插入操作的时间复杂度可以降低
+template <typename T, typename Compare>
+template <typename... Args>
+typename RbTree<T, Compare>::iterator RbTree<T, Compare>::emplace_multi_use_hint(
+    iterator hint, Args&&... args) {
+  THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1, "RbTree<T, Comp>'s size too big");
+  node_ptr np = create_node(mystl::forward<Args>(args)...);
+  if (node_count_ == 0) {
+    return insert_node_at(header_, np, true);
+  }
+  key_type key = value_traits::get_key(np->value);
+  if (hint == begin()) {
+    // 位于begin处
+    if (key_comp_(key, value_traits::get_key(*hint))) {
+      return insert_node_at(hint.node, np, true);
+    } else {
+      auto pos = get_insert_multi_pos(key);
+      return insert_node_at(pos.first, np, pos.second);
+    }
+  } else if (hint == end()) {
+    // 位于end处
+    if (!key_comp_(key, value_traits::get_key(rightmost()->get_node_ptr()->value))) {
+      return insert_node_at(rightmost(), np, false);
+    } else {
+      auto pos = get_insert_multi_pos(key);
+      return insert_node_at(pos.first, np, pos.second);
+    }
+  }
+  return insert_multi_use_hint(hint, key, np);
+}
+
+// 就地插入元素，键值不允许重复，当hint位置与插入位置接近时，插入操作的时间复杂度可以降低
+template <typename T, typename Compare>
+template <typename... Args>
+typename RbTree<T, Compare>::iterator RbTree<T, Compare>::emplace_unique_use_hint(
+    iterator hint, Args&&... args) {
+  THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1, "RbTree<T, Comp>'s size too big");
+  node_ptr np = create_node(mystl::forward<Args>(args)...);
+  if (node_count_ == 0) {
+    return insert_node_at(header_, np, true);
+  }
+  key_type key = value_traits::get_key(np->value);
+  if (hint == begin()) {
+    // 位于begin处
+    if (key_comp_(key, value_traits::get_key(*hint))) {
+      return insert_node_at(hint.node, np, true);
+    } else {
+      auto pos = get_insert_unique_pos(key);
+      if (!pos.second) {
+        destroy_node(np);
+        return pos.first.first;
+      }
+      return insert_node_at(pos.first.first, np, pos.first.second);
+    }
+  } else if (hint == end()) {
+    // 位于end处
+    if (key_comp_(value_traits::get_key(rightmost()->get_node_ptr()->value), key)) {
+      return insert_node_at(rightmost(), np, false);
+    } else {
+      auto pos = get_insert_unique_pos(key);
+      if (!pos.second) {
+        destroy_node(np);
+        return pos.first.first;
+      }
+      return insert_node_at(pos.first.first, np, pos.first.second);
+    }
+  }
+  return insert_unique_use_hint(hint, key, np);
+}
+
+// 插入元素，结点键值允许重复
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::iterator RbTree<T, Compare>::insert_multi(const value_type& value) {
+  THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1, "RbTree<T, Comp>'s size too big");
+  auto res = get_insert_multi_pos(value_traits::get_value(value));
+  return insert_value_at(res.first, value, res.second);
+}
+
+// 插入新值，结点键值不允许重复，返回一个pair，若插入成功，pair的第二个参数为true，否则为false
+template <typename T, typename Compare>
+mystl::pair<typename RbTree<T, Compare>::iterator, bool> RbTree<T, Compare>::insert_unique(
+    const value_type& value) {
+  THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1, "RbTree<T, Comp>'s size too big");
+  auto res = get_insert_unique_pos(value_traits::get_value(value));
+  if (res.second) {
+    // 插入成功
+    return mystl::make_pair(insert_value_at(res.first.first, value, res.first.second));
+  }
+  return mystl::make_pair(res.first.first, false);
+}
+
+// 删除hint位置的结点
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::iterator RbTree<T, Compare>::erase(iterator hint) {
+  auto node = hint.node->get_node_ptr();
+  iterator next(node);
+  ++next;
+  rb_tree_erase_rebalance(hint.node, root(), leftmost(), rightmost());
+  destroy_node(node);
+  --node_count_;
+  return next;
+}
+
+// 删除键值等于key的元素，返回删除的个数
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::size_type RbTree<T, Compare>::erase_multi(const key_type& key) {
+  auto p = equal_range_multi(key);
+  size_type n = mystl::distance(p.first, p.second);
+  erase(p.first, p.second);
+  return n;
+}
+
+// 删除键值等于key的元素，返回删除的个数
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::size_type RbTree<T, Compare>::erase_unique(const key_type& key) {
+  auto it = find(key);
+  if (it != end()) {
+    erase(it);
+    return 1;
+  }
+  return 0;
+}
+
+// 删除[first, last)区间内的元素
+template <typename T, typename Compare>
+void RbTree<T, Compare>::erase(iterator first, iterator last) {
+  if (first == begin() && last == end()) {
+    clear();
+  } else {
+    while (first != last) {
+      erase(first++);
+    }
+  }
+}
+
+// 清空RbTree
+template <typename T, typename Compare>
+void RbTree<T, Compare>::clear() {
+  if (node_count_ != 0) {
+    erase_since(root());
+    leftmost() = header_;
+    root() = nullptr;
+    rightmost() = header_;
+    node_count_ = 0;
+  }
+}
+
+// 查找键值为key的结点，返回指向它的迭代器
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::iterator RbTree<T, Compare>::find(const key_type& key) {
+  auto y = header_;  // 最后一个不小于key的结点
+  auto x = root();
+  while (x != nullptr) {
+    if (!key_comp_(value_traits::get_key(x->get_node_ptr()->value), key)) {
+      // key小于等于x键值，向左走
+      y = x;
+      x = x->left;
+    } else {
+      // key大于x键值，向右走
+      x = x->right;
+    }
+  }
+  iterator j = iterator(y);
+  return (j == end() || key_comp_(key, value_traits::get_key(*j))) ? end() : j;
+}
+
+// 查找键值为key的结点，返回指向它的迭代器
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::const_iterator RbTree<T, Compare>::find(const key_type& key) const {
+  auto y = header_;  // 最后一个不小于key的结点
+  auto x = root();
+  while (x != nullptr) {
+    if (!key_comp_(value_traits::get_key(x->get_node_ptr()->value), key)) {
+      // key小于等于x键值，向左走
+      y = x;
+      x = x->left;
+    } else {
+      // key大于x键值，向右走
+      x = x->right;
+    }
+  }
+  const_iterator j = const_iterator(y);
+  return (j == end() || key_comp_(key, value_traits::get_key(*j))) ? end() : j;
+}
+
+// 键值不小于key的第一个位置
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::iterator RbTree<T, Compare>::lower_bound(const key_type& key) {
+  auto y = header_;
+  auto x = root();
+  while (x != nullptr) {
+    if (!key_comp_(value_traits::get_key(x->get_node_ptr()->value), key)) {
+      // key <= x
+      y = x;
+      x = x->left;
+    } else {
+      x = x->right;
+    }
+  }
+  return iterator(y);
+}
+
+// 键值不小于key的第一个位置
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::const_iterator RbTree<T, Compare>::lower_bound(
+    const key_type& key) const {
+  auto y = header_;
+  auto x = root();
+  while (x != nullptr) {
+    if (!key_comp_(value_traits::get_key(x->get_node_ptr()->value), key)) {
+      // key <= x
+      y = x;
+      x = x->left;
+    } else {
+      x = x->right;
+    }
+  }
+  return const_iterator(y);
+}
+
+// 键值不小于key的最后一个位置
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::iterator RbTree<T, Compare>::upper_bound(const key_type& key) {
+  auto y = header_;
+  auto x = root();
+  while (x != nullptr) {
+    if (key_comp_(key, value_traits::get_key(x->get_node_ptr()->value))) {
+      // key < x
+      y = x;
+      x = x->left;
+    } else {
+      x = x->right;
+    }
+  }
+  return iterator(y);
+}
+
+// 键值不小于key的最后一个位置
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::const_iterator RbTree<T, Compare>::upper_bound(
+    const key_type& key) const {
+  auto y = header_;
+  auto x = root();
+  while (x != nullptr) {
+    if (key_comp_(key, value_traits::get_key(x->get_node_ptr()->value))) {
+      // key < x
+      y = x;
+      x = x->left;
+    } else {
+      x = x->right;
+    }
+  }
+  return const_iterator(y);
+}
+
+// 交换RbTree
+template <typename T, typename Compare>
+void RbTree<T, Compare>::swap(RbTree& rhs) noexcept {
+  if (this != &rhs) {
+    mystl::swap(header_, rhs.header_);
+    mystl::swap(node_count_, rhs.node_count_);
+    mystl::swap(key_comp_, rhs.key_comp_);
+  }
+}
+
+// helper function
+
+// 创建一个结点
+template <typename T, typename Compare>
+template <typename... Args>
+typename RbTree<T, Compare>::node_ptr RbTree<T, Compare>::create_node(Args&&... args) {
+  auto tmp = node_allocator::allocate(1);
+  try {
+    data_allocator::construct(mystl::address_of(tmp->value), mystl::forward<Args>(args)...);
+    tmp->left = nullptr;
+    tmp->right = nullptr;
+    tmp->parent = nullptr;
+  } catch (...) {
+    node_allocator::deallocate(tmp);
+    throw;
+  }
+  return tmp;
+}
+
+// 复制一个结点
+template <typename T, typename Compare>
+typename RbTree<T, Compare>::node_ptr RbTree<T, Compare>::clone_node(base_ptr x) {
+  node_ptr tmp = create_node(x->get_node_ptr()->value);
+  tmp->color = x->color;
+  tmp->left = nullptr;
+  tmp->right = nullptr;
+  return tmp;
+}
+
+// 销毁一个结点
+template <typename T, typename Compare>
+void RbTree<T, Compare>::destroy_node(node_ptr p) {
+  data_allocator::destroy(&p->value);
+  node_allocator::deallocate(p);
+}
+
+// 初始化容器
+template <typename T, typename Compare>
+void RbTree<T, Compare>::rb_tree_init() {
+  header_ = base_allocator::allocate(1);
+  header_->color = kRbTreeRed;  // header_结点颜色为红，与root区分
+  root() = nullptr;
+  leftmost() = header_;
+  rightmost() = header_;
+  node_count_ = 0;
+}
+
+// reset函数
+template <typename T, typename Compare>
+void RbTree<T, Compare>::reset() {
+  header_ = nullptr;
+  node_count_ = 0;
+}
+
+// get_insert_multi_pos函数
+template <typename T, typename Compare>
+mystl::pair<typename RbTree<T, Compare>::base_ptr, bool> RbTree<T, Compare>::get_insert_multi_pos(
+    const key_type& key) {
+  auto x = root();
+  auto y = header_;
+  bool add_to_left = true;
+  while (x != nullptr) {
+    y = x;
+    add_to_left = key_comp_(key, value_traits::get_key(x->get_node_ptr()->value));
+    x = add_to_left ? x->left : x->right;
+  }
+  return mystl::make_pair(y, add_to_left);
+}
+
+// get_insert_unique_pos函数
+template <typename T, typename Compare>
+mystl::pair<mystl::pair<typename RbTree<T, Compare>::base_ptr, bool>, bool>
+RbTree<T, Compare>::get_insert_unique_pos(const key_type& key) {
+  // 返回一个pair，第一个值为一个pair，包含插入点的父结点和一个bool表示是否在左边插入，
+  // 第二个值为一个bool,表示是否插入成功
 }
 
 }  // namespace mystl
