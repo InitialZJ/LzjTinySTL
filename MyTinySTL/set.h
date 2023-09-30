@@ -16,11 +16,7 @@
 //   * emplace_hint
 //   * insert
 
-#include <initializer_list>
-
-#include "iterator.h"
 #include "rb_tree.h"
-#include "util.h"
 
 namespace mystl {
 
