@@ -19,5 +19,6 @@
 | priority_queue      | 100%  | 100% |
 | set      | 100%  | 100% |
 | multiset      | 100%  | 100% |
-| map      | 100%  | 0% |
-| multimap      | 100%  | 0% |
+| map      | 100%  | 100% |
+| multimap      | 100%  | 100% |
+| hashtable      | 10%  | 0% |

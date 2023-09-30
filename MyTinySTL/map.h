@@ -22,7 +22,7 @@
 #include "rb_tree.h"
 #include "util.h"
 
-namespace stl {
+namespace mystl {
 // 模板类map
 // 参数一代表键值类型，参数二代表实值类型，参数三代表键值的比较方式，缺省实用mystl::less
 template <typename Key, typename T, typename Compare = mystl::Less<Key>>
@@ -153,7 +153,7 @@ class Map {
 
   // 插入删除相关
   template <typename... Args>
-  mystl::pair<iterator, bool> emplace(Args&&... args) {
+  pair<iterator, bool> emplace(Args&&... args) {
     return tree_.emplace_unique(mystl::forward<Args>(args)...);
   }
 
@@ -162,10 +162,8 @@ class Map {
     return tree_.emplace_unique_use_hint(hint, mystl::forward<Args>(args)...);
   }
 
-  mystl::pair<iterator, bool> insert(const value_type& value) { return tree_.insert_unique(value); }
-  mystl::pair<iterator, bool> insert(value_type&& value) {
-    return tree_.insert_unique(std::move(value));
-  }
+  pair<iterator, bool> insert(const value_type& value) { return tree_.insert_unique(value); }
+  pair<iterator, bool> insert(value_type&& value) { return tree_.insert_unique(std::move(value)); }
 
   iterator insert(iterator hint, const value_type& value) {
     return tree_.insert_unique(hint, value);
@@ -197,11 +195,11 @@ class Map {
   iterator upper_bound(const key_type& key) { return tree_.upper_bound(key); }
   const_iterator upper_bound(const key_type& key) const { return tree_.upper_bound(key); }
 
-  mystl::pair<iterator, iterator> equal_range(const key_type& key) {
+  pair<iterator, iterator> equal_range(const key_type& key) {
     return tree_.equal_range_unique(key);
   }
 
-  mystl::pair<const_iterator, const_iterator> equal_range(const key_type& key) const {
+  pair<const_iterator, const_iterator> equal_range(const key_type& key) const {
     return tree_.equal_range_unique(key);
   }
 
@@ -346,7 +344,7 @@ class MultiMap {
 
   // 插入删除相关
   template <typename... Args>
-  mystl::pair<iterator, bool> emplace(Args&&... args) {
+  iterator emplace(Args&&... args) {
     return tree_.emplace_multi(mystl::forward<Args>(args)...);
   }
 
@@ -355,10 +353,8 @@ class MultiMap {
     return tree_.emplace_multi_use_hint(hint, mystl::forward<Args>(args)...);
   }
 
-  mystl::pair<iterator, bool> insert(const value_type& value) { return tree_.insert_multi(value); }
-  mystl::pair<iterator, bool> insert(value_type&& value) {
-    return tree_.insert_multi(std::move(value));
-  }
+  iterator insert(const value_type& value) { return tree_.insert_multi(value); }
+  iterator insert(value_type&& value) { return tree_.insert_multi(std::move(value)); }
 
   iterator insert(iterator hint, const value_type& value) {
     return tree_.insert_multi(hint, value);
@@ -390,11 +386,9 @@ class MultiMap {
   iterator upper_bound(const key_type& key) { return tree_.upper_bound(key); }
   const_iterator upper_bound(const key_type& key) const { return tree_.upper_bound(key); }
 
-  mystl::pair<iterator, iterator> equal_range(const key_type& key) {
-    return tree_.equal_range_multi(key);
-  }
+  pair<iterator, iterator> equal_range(const key_type& key) { return tree_.equal_range_multi(key); }
 
-  mystl::pair<const_iterator, const_iterator> equal_range(const key_type& key) const {
+  pair<const_iterator, const_iterator> equal_range(const key_type& key) const {
     return tree_.equal_range_multi(key);
   }
 
@@ -444,5 +438,5 @@ void swap(MultiMap<Key, T, Compare>& lhs, MultiMap<Key, T, Compare>& rhs) noexce
   lhs.swap(rhs);
 }
 
-}  // namespace stl
+}  // namespace mystl
 #endif  // ! MYTINYSTL_MAP_H_

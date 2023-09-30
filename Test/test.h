@@ -677,16 +677,16 @@ void test_len(size_t len1, size_t len2, size_t len3, size_t wide) {
   FUN_TEST_FORMAT2(mystl::con2, fun, arg1, arg2, len2);            \
   FUN_TEST_FORMAT2(mystl::con2, fun, arg1, arg2, len3);
 
-#define MAP_EMPLACE_TEST(con, len1, len2, len3) \
-  TEST_LEN(len1, len2, len3, WIDE);             \
-  std::cout << "|         std         |";       \
-  MAP_EMPLACE_DO_TEST(std, con, len1);          \
-  MAP_EMPLACE_DO_TEST(std, con, len2);          \
-  MAP_EMPLACE_DO_TEST(std, con, len3);          \
-  std::cout << "\n|        mystl        |";     \
-  MAP_EMPLACE_DO_TEST(mystl, con, len1);        \
-  MAP_EMPLACE_DO_TEST(mystl, con, len2);        \
-  MAP_EMPLACE_DO_TEST(mystl, con, len3);
+#define MAP_EMPLACE_TEST(con1, con2, len1, len2, len3) \
+  TEST_LEN(len1, len2, len3, WIDE);                    \
+  std::cout << "|         std         |";              \
+  MAP_EMPLACE_DO_TEST(std, con1, len1);                \
+  MAP_EMPLACE_DO_TEST(std, con1, len2);                \
+  MAP_EMPLACE_DO_TEST(std, con1, len3);                \
+  std::cout << "\n|        mystl        |";            \
+  MAP_EMPLACE_DO_TEST(mystl, con2, len1);              \
+  MAP_EMPLACE_DO_TEST(mystl, con2, len2);              \
+  MAP_EMPLACE_DO_TEST(mystl, con2, len3);
 
 #define LIST_SORT_TEST(con1, con2, len1, len2, len3) \
   TEST_LEN(len1, len2, len3, WIDE);                  \
