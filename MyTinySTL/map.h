@@ -445,3 +445,4 @@ void swap(MultiMap<Key, T, Compare>& lhs, MultiMap<Key, T, Compare>& rhs) noexce
 }
 
 }  // namespace stl
+#endif  // ! MYTINYSTL_MAP_H_
