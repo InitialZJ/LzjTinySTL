@@ -127,8 +127,7 @@ struct pair {
               std::is_convertible<const Other1&, Ty1>::value &&
               std::is_convertible<const Other2&, Ty2>::value,
           int>::type = 0>
-  constexpr explicit pair(const pair<Other1, Other2>& other)
-      : first(other.first), second(other.second) {}
+  constexpr pair(const pair<Other1, Other2>& other) : first(other.first), second(other.second) {}
 
   template <
       typename Other1,
@@ -149,7 +148,7 @@ struct pair {
           std::is_constructible<Ty1, Other1>::value && std::is_constructible<Ty2, Other2>::value &&
               std::is_convertible<Other1, Ty1>::value && std::is_convertible<Other2, Ty2>::value,
           int>::type = 0>
-  constexpr explicit pair(pair<Other1, Other2>&& other)
+  constexpr pair(pair<Other1, Other2>&& other)
       : first(mystl::forward<Other1>(other.first)), second(mystl::forward<Other2>(other.second)) {}
 
   template <

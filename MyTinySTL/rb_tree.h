@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <initializer_list>
+#include <iostream>
 
 #include "algobase.h"
 #include "allocator.h"
@@ -280,6 +281,7 @@ struct RbTreeConstIterator : public RbTreeIteratorBase<T> {
   RbTreeConstIterator() {}
   RbTreeConstIterator(base_ptr x) { node = x; }
   RbTreeConstIterator(node_ptr x) { node = x; }
+  // RbTreeConstIterator(iterator rhs) { node = rhs.node; }
   RbTreeConstIterator(const iterator& rhs) { node = rhs.node; }
   RbTreeConstIterator(const const_iterator& rhs) { node = rhs.node; }
 
@@ -389,7 +391,7 @@ void rb_tree_rotate_left(NodePtr x, NodePtr& root) noexcept {
   }
 
   // 调整x与y的关系
-  y->left = y;
+  y->left = x;
   x->parent = y;
 }
 
@@ -459,7 +461,7 @@ void rb_tree_insert_rebalance(NodePtr x, NodePtr& root) noexcept {
         // 都转为case 5
         rb_tree_set_black(x->parent);
         rb_tree_set_red(x->parent->parent);
-        rb_tree_rotate_right(x->parent->parent, &root);
+        rb_tree_rotate_right(x->parent->parent, root);
         break;
       }
     } else {
@@ -473,7 +475,7 @@ void rb_tree_insert_rebalance(NodePtr x, NodePtr& root) noexcept {
         rb_tree_set_red(x);
       } else {
         // 无叔叔结点或者叔叔结点为黑
-        if (!rb_tree_is_lchild(x)) {
+        if (rb_tree_is_lchild(x)) {
           // case 4
           x = x->parent;
           rb_tree_rotate_right(x, root);
@@ -481,7 +483,7 @@ void rb_tree_insert_rebalance(NodePtr x, NodePtr& root) noexcept {
         // 都转为case 5
         rb_tree_set_black(x->parent);
         rb_tree_set_red(x->parent->parent);
-        rb_tree_rotate_left(x->parent->parent, &root);
+        rb_tree_rotate_left(x->parent->parent, root);
         break;
       }
     }
@@ -548,7 +550,7 @@ NodePtr rb_tree_erase_rebalance(NodePtr z, NodePtr& root, NodePtr& leftmost, Nod
     } else if (rb_tree_is_lchild(z)) {
       z->parent->left = x;
     } else {
-      z->parent->rigth = x;
+      z->parent->right = x;
     }
 
     // 此时z有可能是最左结点或最右结点，更新数据
@@ -808,7 +810,7 @@ class RbTree {
 
   size_type count_multi(const key_type& key) const {
     auto p = equal_range_multi(key);
-    return static_cast<size_type>(mystl::distance(p.first, p.last));
+    return static_cast<size_type>(mystl::distance(p.first, p.second));
   }
   size_type count_unique(const key_type& key) const { return find(key) != end() ? 1 : 0; }
 
@@ -1027,7 +1029,7 @@ mystl::pair<typename RbTree<T, Compare>::iterator, bool> RbTree<T, Compare>::ins
   auto res = get_insert_unique_pos(value_traits::get_key(value));
   if (res.second) {
     // 插入成功
-    return mystl::make_pair(insert_value_at(res.first.first, value, res.first.second));
+    return mystl::make_pair(insert_value_at(res.first.first, value, res.first.second), true);
   }
   return mystl::make_pair(res.first.first, false);
 }

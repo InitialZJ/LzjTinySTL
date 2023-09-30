@@ -17,5 +17,5 @@
 | stack      | 100%  | 100% |
 | queue      | 100%  | 100% |
 | priority_queue      | 100%  | 100% |
-| set      | 100%  | 0% |
-| multiset      | 100%  | 0% |
+| set      | 100%  | 100% |
+| multiset      | 100%  | 100% |

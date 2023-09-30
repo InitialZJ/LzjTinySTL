@@ -6,6 +6,7 @@
 // 对应书5.3节
 
 // multiset : 集合，键值即实值，集合内元素会自动排序，键值允许重复
+// 对应书5.5节
 
 // notes:
 //
@@ -293,7 +294,7 @@ class MultiSet {
 
   // 插入删除操作
   template <typename... Args>
-  pair<iterator, bool> emplace(Args&&... args) {
+  iterator emplace(Args&&... args) {
     return tree_.emplace_multi(mystl::forward<Args>(args)...);
   }
 
@@ -302,8 +303,8 @@ class MultiSet {
     return tree_.emplace_multi_use_hint(hint, mystl::forward<Args>(args)...);
   }
 
-  pair<iterator, bool> insert(const value_type& value) { return tree_.insert_multi(value); }
-  pair<iterator, bool> insert(value_type&& value) { return tree_.insert_multi(mystl::move(value)); }
+  iterator insert(const value_type& value) { return tree_.insert_multi(value); }
+  iterator insert(value_type&& value) { return tree_.insert_multi(mystl::move(value)); }
 
   iterator insert(iterator hint, const value_type& value) {
     return tree_.insert_multi(hint, value);
