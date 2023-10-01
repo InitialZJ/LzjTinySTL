@@ -46,6 +46,55 @@ void reverse(BidirectionalIter first, BidirectionalIter last) {
   mystl::reverse_dispatch(first, last, iterator_category(first));
 }
 
+// lower_bound
+// 在[first, last)中查找第一个不小于value的元素，并返回指向它的迭代器，若没有则返回last
+// lbound_dispatch的ForwardIteratorTag版本
+template <typename ForwardIter, typename T>
+ForwardIter lbound_dispatch(
+    ForwardIter first, ForwardIter last, const T& value, ForwardIteratorTag /*unused*/) {
+  auto len = mystl::distance(first, last);
+  auto half = len;
+  FOrwardIter middle;
+  while (len > 0) {
+    half = len >> 1;
+    middle = first;
+    mystl::advance(first, middle);
+    if (*middle < value) {
+      first = middle;
+      ++first;
+      len = len - half - 1;
+    } else {
+      len = half;
+    }
+  }
+  return first;
+}
+
+// lbound_dispatch的RandomAccessIteratorTag版本
+template <typename RandomIter, typename T>
+RandomIter lbound_dispatch(
+    RandomIter first, RandomIter last, const T& value, RandomAccessIteratorTag /*unused*/) {
+  auto len = mystl::distance(first, last);
+  auto half = len;
+  RandomIter middle;
+  while (len > 0) {
+    half = len >> 1;
+    middle = first + half;
+    if (*middle < value) {
+      first = middle + 1;
+      len = len - half - 1;
+    } else {
+      len = half;
+    }
+  }
+  return first;
+}
+
+template <typename ForwardIter, typename T>
+ForwardIter lower_bound(ForwardIter first, ForwardIter last, const T& value) {
+  return mystl::lbound_dispatch(first, last, value, iterator_category(first));
+}
+
 }  // namespace mystl
 
 #endif  // !MYTINYSTL_ALGO_H_
