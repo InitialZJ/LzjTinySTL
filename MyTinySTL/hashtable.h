@@ -663,7 +663,7 @@ class Hashtable {
 
   template <typename InputIter>
   void insert_unique(InputIter first, InputIter last) {
-    copy_insert_multi(first, last, iterator_category(first));
+    copy_insert_unique(first, last, iterator_category(first));
   }
 
   void erase(const_iterator position);
@@ -917,6 +917,495 @@ void Hashtable<T, Hash, KeyEqual>::erase(const_iterator first, const_iterator la
       erase_bucket(last_bucket, last.node);
     }
   }
+}
+
+// 删除键值为key的结点
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::size_type Hashtable<T, Hash, KeyEqual>::erase_multi(
+    const key_type& key) {
+  auto p = equal_range_multi(key);
+  if (p.first.node != nullptr) {
+    erase(p.first, p.second);
+    return mystl::distance(p.first, p.second);
+  }
+  return 0;
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::size_type Hashtable<T, Hash, KeyEqual>::erase_unique(
+    const key_type& key) {
+  const auto n = hash(key);
+  auto first = buckets_[n];
+  if (first) {
+    if (is_equal(value_traits::get_key(first->value), key)) {
+      buckets_[n] = first->next;
+      destroy_node(first);
+      --size_;
+      return 1;
+    } else {
+      auto next = first->next;
+      while (next) {
+        if (is_equal(value_traits::get_key(next->value), key)) {
+          first->next = next->next;
+          destroy_node(next);
+          --size_;
+          return 1;
+        }
+        first = next;
+        next = first->next;
+      }
+    }
+  }
+  return 0;
+}
+
+// 清空hashtable
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::clear() {
+  if (size_ != 0) {
+    for (size_type i = 0; i < bucket_size_; ++i) {
+      node_ptr cur = buckets_[i];
+      while (cur) {
+        node_ptr next = cur->next;
+        destroy_node(cur);
+        cur = next;
+      }
+      buckets_[i] = nullptr;
+    }
+    size_ = 0;
+  }
+}
+
+// 查看在某个bucket结点的个数
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::size_type Hashtable<T, Hash, KeyEqual>::bucket_size(
+    size_type n) const noexcept {
+  size_type result = 0;
+  for (auto cur = buckets_[n]; cur; cur = cur->next) {
+    ++result;
+  }
+  return result;
+}
+
+// 重新对元素进行一遍哈希，插入到新的位置
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::rehash(size_type count) {
+  auto n = ht_next_prime(count);
+  if (n > bucket_size_) {
+    replace_bucket(n);
+  } else {
+    if ((float)size_ / (float)n < max_load_factor() - 0.25F &&
+        (float)n < (float)bucket_size_ * 0.75) {
+      // worth rehash
+      replace_bucket(n);
+    }
+  }
+}
+
+// 查找键值为key的结点，返回其迭代器
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::iterator Hashtable<T, Hash, KeyEqual>::find(
+    const key_type& key) {
+  const auto n = hash(key);
+  node_ptr first = buckets_[n];
+  for (; first && !is_equal(value_traits::get_key(first->value), key); first = first->next) {
+  }
+  return iterator(first, this);
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::const_iterator Hashtable<T, Hash, KeyEqual>::find(
+    const key_type& key) const {
+  const auto n = hash(key);
+  node_ptr first = buckets_[n];
+  for (; first && !is_equal(value_traits::get_key(first->value), key); first = first->next) {
+  }
+  return M_cit(first);
+}
+
+// 查找键值为key出现的次数
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::size_type Hashtable<T, Hash, KeyEqual>::count(
+    const key_type& key) const {
+  const auto n = hash(key);
+  size_type result = 0;
+  for (node_ptr cur = buckets_[n]; cur; cur = cur->next) {
+    if (is_equal(value_traits::get_key(cur->value), key)) {
+      ++result;
+    }
+  }
+  return result;
+}
+
+// 查找与键值key相等的区间，返回一个pair，指向相等区间的首尾
+template <typename T, typename Hash, typename KeyEqual>
+pair<
+    typename Hashtable<T, Hash, KeyEqual>::iterator,
+    typename Hashtable<T, Hash, KeyEqual>::iterator>
+Hashtable<T, Hash, KeyEqual>::equal_range_multi(const key_type& key) {
+  const auto n = hash(key);
+  for (node_ptr first = buckets_[n]; first; first = first->next) {
+    if (is_equal(value_traits::get_key(first->value), key)) {
+      // 如果出现相等的键值
+      for (node_ptr second = first->next; second; second = second->next) {
+        if (!is_equal(value_traits::get_key(second->value), key)) {
+          return mystl::make_pair(M_cit(first, this), iterator(second, this));
+        }
+        for (auto m = n + 1; m < bucket_size_; ++m) {
+          // 整个链表都相等，查找下一个链表出现的位置
+          if (buckets_[m]) {
+            return mystl::make_pair(iterator(first, this), iterator(buckets_[m], this));
+          }
+        }
+        return mystl::make_pair(iterator(first, this), end());
+      }
+    }
+  }
+  return make_pair(end(), end());
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+pair<
+    typename Hashtable<T, Hash, KeyEqual>::const_iterator,
+    typename Hashtable<T, Hash, KeyEqual>::const_iterator>
+Hashtable<T, Hash, KeyEqual>::equal_range_multi(const key_type& key) const {
+  const auto n = hash(key);
+  for (node_ptr first = buckets_[n]; first; first = first->next) {
+    if (is_equal(value_traits::get_key(first->value), key)) {
+      // 如果出现相等的键值
+      for (node_ptr second = first->next; second; second = second->next) {
+        if (!is_equal(value_traits::get_key(second->value), key)) {
+          return mystl::make_pair(M_cit(first), M_cit(second));
+        }
+        for (auto m = n + 1; m < bucket_size_; ++m) {
+          // 整个链表都相等，查找下一个链表出现的位置
+          if (buckets_[m]) {
+            return mystl::make_pair(M_cit(first), M_cit(buckets_[m]));
+          }
+        }
+        return mystl::make_pair(M_cit(first), cend());
+      }
+    }
+  }
+  return make_pair(cend(), cend());
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+pair<
+    typename Hashtable<T, Hash, KeyEqual>::iterator,
+    typename Hashtable<T, Hash, KeyEqual>::iterator>
+Hashtable<T, Hash, KeyEqual>::equal_range_unique(const key_type& key) {
+  const auto n = hash(key);
+  for (node_ptr first = buckets_[n]; first; first = first->next) {
+    if (is_equal(value_traits::get_key(first->value), key)) {
+      // 如果出现相等的键值
+      if (first->next) {
+        return mystl::make_pair(iterator(first, this), iterator(first->next, this));
+      }
+      for (auto m = n + 1; m < bucket_size_; ++m) {
+        // pair->next为末尾，需要查找下一个链表的头
+        if (buckets_[m]) {
+          return mystl::make_pair(iterator(first, this), iterator(buckets_[m], this));
+        }
+      }
+      return mystl::make_pair(iterator(first, this), end());
+    }
+  }
+  return make_pair(end(), end());
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+pair<
+    typename Hashtable<T, Hash, KeyEqual>::const_iterator,
+    typename Hashtable<T, Hash, KeyEqual>::const_iterator>
+Hashtable<T, Hash, KeyEqual>::equal_range_unique(const key_type& key) const {
+  const auto n = hash(key);
+  for (node_ptr first = buckets_[n]; first; first = first->next) {
+    if (is_equal(value_traits::get_key(first->value), key)) {
+      // 如果出现相等的键值
+      if (first->next) {
+        return mystl::make_pair(M_cit(first), M_cit(first->next));
+      }
+      for (auto m = n + 1; m < bucket_size_; ++m) {
+        // pair->next为末尾，需要查找下一个链表的头
+        if (buckets_[m]) {
+          return mystl::make_pair(M_cit(first), M_cit(buckets_[m]));
+        }
+      }
+      return mystl::make_pair(M_cit(first), cend());
+    }
+  }
+  return make_pair(cend(), cend());
+}
+
+// 交换hashtable
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::swap(Hashtable& rhs) noexcept {
+  if (this != &rhs) {
+    buckets_.swap(rhs.buckets_);
+    mystl::swap(bucket_size_, rhs.bucket_size_);
+    mystl::swap(size_, rhs.size_);
+    mystl::swap(mlf_, rhs.mlf_);
+    mystl::swap(hash_, rhs.hash_);
+    mystl::swap(equal_, rhs.equal_);
+  }
+}
+
+// helper function
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::init(size_type n) {
+  const auto bucket_nums = next_size(n);
+  try {
+    buckets_.reserve(bucket_nums);
+    buckets_.assign(bucket_nums, nullptr);
+  } catch (...) {
+    bucket_size_ = 0;
+    size_ = 0;
+    throw;
+  }
+  bucket_size_ = buckets_.size();
+}
+
+// copy_init函数
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::copy_init(const Hashtable& ht) {
+  bucket_size_ = 0;
+  buckets_.reserve(ht.bucket_size_);
+  buckets_.assign(ht.bucket_size_, nullptr);
+  try {
+    for (size_type i = 0; i < ht.bucket_size_; ++i) {
+      node_ptr cur = ht.buckets_[i];
+      if (cur) {
+        // 如果某bucket存在链表
+        auto copy = create_node(cur->value);
+        buckets_[i] = copy;
+        for (auto next = cur->next; next; cur = next, next = cur->next) {
+          // 复制链表
+          copy->next = create_node(next->value);
+          copy = copy->next;
+        }
+        copy->next = nullptr;
+      }
+    }
+    bucket_size_ = ht.bucket_size_;
+    mlf_ = ht.mlf_;
+    size_ = ht.size_;
+  } catch (...) {
+    clear();
+  }
+}
+
+// create_node函数
+template <typename T, typename Hash, typename KeyEqual>
+template <typename... Args>
+typename Hashtable<T, Hash, KeyEqual>::node_ptr Hashtable<T, Hash, KeyEqual>::create_node(
+    Args&&... args) {
+  node_ptr tmp = node_allocator::allocate(1);
+  try {
+    data_allocator::construct(mystl::address_of(tmp->value), mystl::forward<Args>(args)...);
+    tmp->next = nullptr;
+  } catch (...) {
+    node_allocator::deallocate(tmp);
+    throw;
+  }
+  return tmp;
+}
+
+// destroy_node函数
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::destroy_node(node_ptr node) {
+  data_allocator::destroy(mystl::address_of(node->value));
+  node_allocator::deallocate(node);
+  node = nullptr;
+}
+
+// next_size函数
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::size_type Hashtable<T, Hash, KeyEqual>::next_size(
+    size_type n) const {
+  return ht_next_prime(n);
+}
+
+// hash函数
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::size_type Hashtable<T, Hash, KeyEqual>::hash(
+    const key_type& key, size_type n) const {
+  return hash_(key) % n;
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::size_type Hashtable<T, Hash, KeyEqual>::hash(
+    const key_type& key) const {
+  return hash_(key) % bucket_size_;
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::rehash_if_need(size_type n) {
+  if (static_cast<float>(size_ + n) > (float)bucket_size_ * max_load_factor()) {
+    rehash(size_ + n);
+  }
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+template <typename InputIter>
+void Hashtable<T, Hash, KeyEqual>::copy_insert_multi(
+    InputIter first, InputIter last, mystl::InputIteratorTag /*tag*/) {
+  rehash_if_need(mystl::distance(first, last));
+  for (; first != last; ++first) {
+    insert_multi_noresize(*first);
+  }
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+template <typename InputIter>
+void Hashtable<T, Hash, KeyEqual>::copy_insert_unique(
+    InputIter first, InputIter last, mystl::InputIteratorTag /*tag*/) {
+  rehash_if_need(mystl::distance(first, last));
+  for (; first != last; ++first) {
+    insert_unique_noresize(*first);
+  }
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+typename Hashtable<T, Hash, KeyEqual>::iterator Hashtable<T, Hash, KeyEqual>::insert_node_multi(
+    node_ptr np) {
+  const auto n = hash(value_traits::get_key(np->value));
+  auto cur = buckets_[n];
+  if (cur == nullptr) {
+    buckets_[n] = np;
+    ++size_;
+    return iterator(np, this);
+  }
+  for (; cur; cur = cur->next) {
+    if (is_equal(value_traits::get_key(cur->value), value_traits::get_key(np->value))) {
+      np->next = cur->next;
+      cur->next = np;
+      ++size_;
+      return iterator(np, this);
+    }
+  }
+  np->next = buckets_[n];
+  buckets_[n] = np;
+  ++size_;
+  return iterator(np, this);
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+pair<typename Hashtable<T, Hash, KeyEqual>::iterator, bool>
+Hashtable<T, Hash, KeyEqual>::insert_node_unique(node_ptr np) {
+  const auto n = hash(value_traits::get_key(np->value));
+  auto cur = buckets_[n];
+  if (cur == nullptr) {
+    buckets_[n] = np;
+    ++size_;
+    return mystl::make_pair(iterator(np, this), true);
+  }
+  for (; cur; cur = cur->next) {
+    if (is_equal(value_traits::get_key(cur->value), value_traits::get_key(np->value))) {
+      return mystl::make_pair(iterator(cur, this), false);
+    }
+  }
+  np->next = buckets_[n];
+  buckets_[n] = np;
+  ++size_;
+  return mystl::make_pair(iterator(np, this), true);
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::replace_bucket(size_type bucket_count) {
+  bucket_type bucket(bucket_count);
+  if (size_ != 0) {
+    for (size_type i = 0; i < bucket_size_; ++i) {
+      for (auto first = buckets_[i]; first; first = first->next) {
+        auto tmp = create_node(first->value);
+        const auto n = hash(value_traits::get_key(first->value), bucket_count);
+        auto f = bucket[n];
+        bool is_inserted = false;
+        for (auto cur = f; cur; cur = cur->next) {
+          if (is_equal(value_traits::get_key(cur->value), value_traits::get_key(first->value))) {
+            tmp->next = cur->next;
+            cur->next = tmp;
+            is_inserted = true;
+            break;
+          }
+        }
+        if (!is_inserted) {
+          tmp->next = f;
+          bucket[n] = tmp;
+        }
+      }
+    }
+  }
+  buckets_.swap(bucket);
+  bucket_size_ = buckets_.size();
+}
+
+// 在第n个bucket内，删除[frist, last)的结点
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::erase_bucket(size_type n, node_ptr first, node_ptr last) {
+  auto cur = buckets_[n];
+  if (cur == first) {
+    erase_bucket(n, last);
+  } else {
+    node_ptr next = cur->next;
+    for (; next != first; cur = next, next = cur->next) {
+    }
+    while (next != last) {
+      cur->next = next->next;
+      destroy_node(next);
+      next = next->next;
+      --size_;
+    }
+  }
+}
+
+// 在第n个bucket内，删除[buckets_[n], last)的结点
+template <typename T, typename Hash, typename KeyEqual>
+void Hashtable<T, Hash, KeyEqual>::erase_bucket(size_type n, node_ptr last) {
+  auto cur = buckets_[n];
+  while (cur != last) {
+    auto next = cur->next;
+    destroy_node(cur);
+    cur = next;
+    --size_;
+  }
+  buckets_[n] = last;
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+bool Hashtable<T, Hash, KeyEqual>::equal_to_multi(const Hashtable& other) {
+  if (size_ != other.size_) {
+    return false;
+  }
+  for (auto f = begin(), l = end(); f != l;) {
+    auto p1 = equal_range_multi(value_traits::get_key(*f));
+    auto p2 = other.equal_range_multi(value_traits::get_key(*f));
+    if (mystl::distance(p1.first, p1.last) != mystl::distance(p2.first, p2.last) ||
+        !mystl::is_permutation(p1.first, p1.last, p2.first, p2.last)) {
+      return false;
+    }
+    f = p1.last;
+  }
+  return true;
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+bool Hashtable<T, Hash, KeyEqual>::equal_to_unique(const Hashtable& other) {
+  if (size_ != other.size_) {
+    return false;
+  }
+  for (auto f = begin(), l = end(); f != l; ++f) {
+    auto res = other.find(value_traits::get_key(*f));
+    if (res.node == nullptr || *res != *f) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename T, typename Hash, typename KeyEqual>
+void swap(Hashtable<T, Hash, KeyEqual>& lhs, Hashtable<T, Hash, KeyEqual>& rhs) noexcept {
+  lhs.swap(rhs);
 }
 
 }  // namespace mystl

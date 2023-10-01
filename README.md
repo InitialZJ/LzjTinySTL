@@ -21,4 +21,3 @@
 | multiset      | 100%  | 100% |
 | map      | 100%  | 100% |
 | multimap      | 100%  | 100% |
-| hashtable      | 60%  | 0% |

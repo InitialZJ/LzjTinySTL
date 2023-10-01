@@ -76,7 +76,6 @@ void adjust_heap(RandomIter first, Distance holeIndex, Distance len, T value) {
     holeIndex = rchild - 1;
   }
   // 再执行一次上溯(percolate up)过程
-  // 换成*(first + holeIndex) = value也行
   mystl::push_heap_aux(first, holeIndex, topIndex, value);
 }
 
