@@ -21,3 +21,5 @@
 | multiset      | 100%  | 100% |
 | map      | 100%  | 100% |
 | multimap      | 100%  | 100% |
+| unordered_set      | 100%  | 100% |
+| unordered_multiset      | 100%  | 100% |

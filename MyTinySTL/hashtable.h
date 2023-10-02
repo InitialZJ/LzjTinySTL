@@ -114,7 +114,7 @@ struct HtIteratorBase : public mystl::Iterator<mystl::ForwardIteratorTag, T> {
   using node_ptr = HashtableNode<T>*;
   using contain_ptr = hashtable*;
   using const_node_ptr = const node_ptr;
-  using const_container_ptr = const contain_ptr;
+  using const_contain_ptr = const contain_ptr;
 
   using size_type = size_t;
   using difference_type = ptrdiff_t;
@@ -1049,16 +1049,16 @@ Hashtable<T, Hash, KeyEqual>::equal_range_multi(const key_type& key) {
       // 如果出现相等的键值
       for (node_ptr second = first->next; second; second = second->next) {
         if (!is_equal(value_traits::get_key(second->value), key)) {
-          return mystl::make_pair(M_cit(first, this), iterator(second, this));
+          return mystl::make_pair(iterator(first, this), iterator(second, this));
         }
-        for (auto m = n + 1; m < bucket_size_; ++m) {
-          // 整个链表都相等，查找下一个链表出现的位置
-          if (buckets_[m]) {
-            return mystl::make_pair(iterator(first, this), iterator(buckets_[m], this));
-          }
-        }
-        return mystl::make_pair(iterator(first, this), end());
       }
+      for (auto m = n + 1; m < bucket_size_; ++m) {
+        // 整个链表都相等，查找下一个链表出现的位置
+        if (buckets_[m]) {
+          return mystl::make_pair(iterator(first, this), iterator(buckets_[m], this));
+        }
+      }
+      return mystl::make_pair(iterator(first, this), end());
     }
   }
   return make_pair(end(), end());
