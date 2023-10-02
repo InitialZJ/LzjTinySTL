@@ -1,43 +1,45 @@
-#ifndef MYTINYSTL_UNORDERED_SET_H_
-#define MYTINYSTL_UNORDERED_SET_H_
+#ifndef MYTINYSTL_UNORDERED_MAP_H_
+#define MYTINYSTL_UNORDERED_MAP_H_
 
-// 这个头文件包含两个模板类 unordered_set 和 unordered_multiset
-// 功能与用法与 set 和 multiset 类似，不同的是使用 hashtable
-// 作为底层实现机制，容器中的元素不会自动排序
+// 这个头文件包含两个模板类 unordered_map 和 unordered_multimap
+// 功能与用法与 map 和 multimap 类似，不同的是使用 hashtable
+// 作为底层实现机制，容器内的元素不会自动排序
 
-// 对应书5.8、5.10节
+// 对应书5.9、5.11节
 
 // notes:
 //
 // 异常保证：
-// mystl::unordered_set<Key> / mystl::unordered_multiset<Key>
+// mystl::unordered_map<Key, T> / mystl::unordered_multimap<Key, T>
 // 满足基本异常保证，对以下等函数做强异常安全保证：
 //   * emplace
 //   * emplace_hint
 //   * insert
 
-#include <initializer_list>
-
-#include "algobase.h"
+#include "exceptdef.h"
+#include "functional.h"
 #include "hashtable.h"
-#include "iterator.h"
+#include "util.h"
 
 namespace mystl {
 
-// 模板类unordered_set，键值不允许重复
-// 参数一代表键值类型，参数二代表哈希函数，缺省使用mystl::hash，
-// 参数三代表键值比较方式，缺省使用mystl::equal_to
-template <typename Key, typename Hash = mystl::Hash<Key>, typename KeyEqual = mystl::EqualTo<Key>>
-class UnorderedSet {
+// 模板类 unordered_map，键值不允许重复
+// 参数一代表键值类型，参数二代表实值类型，参数三代表哈希函数，缺省使用 mystl::hash
+// 参数四代表键值比较方式，缺省使用 mystl::equal_to
+template <
+    typename Key,
+    typename T,
+    typename Hash = mystl::Hash<Key>,
+    typename KeyEqual = mystl::EqualTo<Key>>
+class UnorderedMap {
  private:
-  // 使用hashtable作为底层机制
-  using base_type = Hashtable<Key, Hash, KeyEqual>;
+  using base_type = Hashtable<mystl::pair<const Key, T>, Hash, KeyEqual>;
   base_type ht_;
 
  public:
-  // 使用hashtable的型别
   using allocator_type = typename base_type::allocator_type;
   using key_type = typename base_type::key_type;
+  using mapped_type = typename base_type::mapped_type;
   using value_type = typename base_type::value_type;
   using hasher = typename base_type::hasher;
   using key_equal = typename base_type::key_equal;
@@ -49,22 +51,22 @@ class UnorderedSet {
   using reference = typename base_type::reference;
   using const_reference = typename base_type::const_reference;
 
-  using iterator = typename base_type::const_iterator;
+  using iterator = typename base_type::iterator;
   using const_iterator = typename base_type::const_iterator;
-  using local_iterator = typename base_type::const_local_iterator;
+  using local_iterator = typename base_type::local_iterator;
   using const_local_iterator = typename base_type::const_local_iterator;
 
   allocator_type get_allocator() const { return ht_.get_allocator(); }
 
  public:
-  UnorderedSet() : ht_(100, Hash(), KeyEqual()) {}
+  UnorderedMap() : ht_(100, Hash(), KeyEqual()) {}
 
-  explicit UnorderedSet(
+  explicit UnorderedMap(
       size_type bucket_count, const Hash& hash = Hash(), const KeyEqual& equal = KeyEqual())
       : ht_(bucket_count, hash, equal) {}
 
   template <typename InputIterator>
-  UnorderedSet(
+  UnorderedMap(
       InputIterator first,
       InputIterator last,
       const size_type bucket_count = 100,
@@ -78,7 +80,7 @@ class UnorderedSet {
     }
   }
 
-  UnorderedSet(
+  UnorderedMap(
       std::initializer_list<value_type> ilist,
       const size_type bucket_count = 100,
       const Hash& hash = Hash(),
@@ -89,19 +91,19 @@ class UnorderedSet {
     }
   }
 
-  UnorderedSet(const UnorderedSet& rhs) : ht_(rhs.ht_) {}
-  UnorderedSet(UnorderedSet&& rhs) noexcept : ht_(mystl::move(rhs.ht_)) {}
+  UnorderedMap(const UnorderedMap& rhs) : ht_(rhs.ht_) {}
+  UnorderedMap(UnorderedMap&& rhs) noexcept : ht_(mystl::move(rhs.ht_)) {}
 
-  UnorderedSet& operator=(const UnorderedSet& rhs) {
+  UnorderedMap& operator=(const UnorderedMap& rhs) {
     ht_ = rhs.ht_;
     return *this;
   }
-  UnorderedSet& operator=(UnorderedSet&& rhs) {
+  UnorderedMap& operator=(UnorderedMap&& rhs) noexcept {
     ht_ = mystl::move(rhs.ht_);
     return *this;
   }
 
-  UnorderedSet& operator=(std::initializer_list<value_type> ilist) {
+  UnorderedMap& operator=(std::initializer_list<value_type> ilist) {
     ht_.clear();
     ht_.reserve(ilist.size());
     for (auto first = ilist.begin(), last = ilist.end(); first != last; ++first) {
@@ -110,9 +112,8 @@ class UnorderedSet {
     return *this;
   }
 
-  ~UnorderedSet() = default;
+  ~UnorderedMap() = default;
 
-  // 迭代器相关
   iterator begin() noexcept { return ht_.begin(); }
   const_iterator begin() const noexcept { return ht_.begin(); }
   iterator end() noexcept { return ht_.end(); }
@@ -121,12 +122,10 @@ class UnorderedSet {
   const_iterator cbegin() const noexcept { return ht_.cbegin(); }
   const_iterator cend() const noexcept { return ht_.cend(); }
 
-  // 容量相关
   bool empty() const noexcept { return ht_.empty(); }
   size_type size() const noexcept { return ht_.size(); }
   size_type max_size() const noexcept { return ht_.max_size(); }
 
-  // 修改容器相关操作
   template <typename... Args>
   pair<iterator, bool> emplace(Args&&... args) {
     return ht_.emplace_unique(mystl::forward<Args>(args)...);
@@ -159,7 +158,33 @@ class UnorderedSet {
 
   void clear() { ht_.clear(); }
 
-  void swap(UnorderedSet& other) noexcept { ht_.swap(other.ht_); }
+  void swap(UnorderedMap& other) noexcept { ht_.swap(other.ht_); }
+
+  mapped_type& at(const key_type& key) {
+    iterator it = ht_.find(key);
+    THROW_OUT_OF_RANGE_IF(it.node == nullptr, "unodered_map<Key, T> no such element exists");
+    return it->second;
+  }
+  const mapped_type& at(const key_type& key) const {
+    iterator it = ht_.find(key);
+    THROW_OUT_OF_RANGE_IF(it.node == nullptr, "unodered_map<Key, T> no such element exists");
+    return it->second;
+  }
+
+  mapped_type& operator[](const key_type& key) {
+    iterator it = ht_.find(key);
+    if (it.node == nullptr) {
+      it = ht_.emplace_unique(key, T{}).first;
+    }
+    return it->second;
+  }
+  mapped_type& operator[](key_type&& key) {
+    iterator it = ht_.find(key);
+    if (it.node == nullptr) {
+      it = ht_.emplace_unique(mystl::move(key), T{}).first;
+    }
+    return it->second;
+  }
 
   size_type count(const key_type& key) const { return ht_.count(key); }
 
@@ -183,9 +208,8 @@ class UnorderedSet {
   size_type max_bucket_count() const noexcept { return ht_.max_bucket_count(); }
 
   size_type bucket_size(size_type n) const noexcept { return ht_.bucket_size(n); }
-  size_type bucket(const key_type& key) const { return ht_.bucket(key); }
+  size_type bucket(const key_type& key) const noexcept { return ht_.bucket(key); }
 
-  // hash policy
   float load_factor() const noexcept { return ht_.load_factor(); }
 
   float max_load_factor() const noexcept { return ht_.max_load_factor(); }
@@ -195,49 +219,55 @@ class UnorderedSet {
   void reserve(size_type count) { ht_.reserve(count); }
 
   hasher hash_fcn() const { return ht_.hash_fcn(); }
-  key_equal key_eq() const { return ht_.key_eq(); }
+  hasher key_eq() const { return ht_.key_eq(); }
 
  public:
-  friend bool operator==(const UnorderedSet& lhs, const UnorderedSet& rhs) {
+  friend bool operator==(const UnorderedMap& lhs, const UnorderedMap& rhs) {
     return lhs.ht_.equal_to_unique(rhs.ht_);
   }
-  friend bool operator!=(const UnorderedSet& lhs, const UnorderedSet& rhs) {
+  friend bool operator!=(const UnorderedMap& lhs, const UnorderedMap& rhs) {
     return !lhs.ht_.equal_to_unique(rhs.ht_);
   }
 };
 
-template <typename Key, typename Hash, typename KeyEqual>
+template <typename Key, typename T, typename Hash, typename KeyEqual>
 bool operator==(
-    const UnorderedSet<Key, Hash, KeyEqual>& lhs, const UnorderedSet<Key, Hash, KeyEqual>& rhs) {
+    const UnorderedMap<Key, T, Hash, KeyEqual>& lhs,
+    const UnorderedMap<Key, T, Hash, KeyEqual>& rhs) {
   return lhs == rhs;
 }
 
-template <typename Key, typename Hash, typename KeyEqual>
+template <typename Key, typename T, typename Hash, typename KeyEqual>
 bool operator!=(
-    const UnorderedSet<Key, Hash, KeyEqual>& lhs, const UnorderedSet<Key, Hash, KeyEqual>& rhs) {
+    const UnorderedMap<Key, T, Hash, KeyEqual>& lhs,
+    const UnorderedMap<Key, T, Hash, KeyEqual>& rhs) {
   return lhs != rhs;
 }
 
-template <typename Key, typename Hash, typename KeyEqual>
+template <typename Key, typename T, typename Hash, typename KeyEqual>
 void swap(
-    const UnorderedSet<Key, Hash, KeyEqual>& lhs, const UnorderedSet<Key, Hash, KeyEqual>& rhs) {
+    const UnorderedMap<Key, T, Hash, KeyEqual>& lhs,
+    const UnorderedMap<Key, T, Hash, KeyEqual>& rhs) {
   lhs.swap(rhs);
 }
 
-// 模板类unordered_multiset，键值允许重复
-// 参数一代表键值类型，参数二代表哈希函数，缺省使用mystl::hash，
-// 参数三代表键值比较方式，缺省使用mystl::equal_to
-template <typename Key, typename Hash = mystl::Hash<Key>, typename KeyEqual = mystl::EqualTo<Key>>
-class UnorderedMultiSet {
+// 模板类 unordered_multimap，键值允许重复
+// 参数一代表键值类型，参数二代表实值类型，参数三代表哈希函数，缺省使用 mystl::hash
+// 参数四代表键值比较方式，缺省使用 mystl::equal_to
+template <
+    typename Key,
+    typename T,
+    typename Hash = mystl::Hash<Key>,
+    typename KeyEqual = mystl::EqualTo<Key>>
+class UnorderedMultiMap {
  private:
-  // 使用hashtable作为底层机制
-  using base_type = Hashtable<Key, Hash, KeyEqual>;
+  using base_type = Hashtable<mystl::pair<const Key, T>, Hash, KeyEqual>;
   base_type ht_;
 
  public:
-  // 使用hashtable的型别
   using allocator_type = typename base_type::allocator_type;
   using key_type = typename base_type::key_type;
+  using mapped_type = typename base_type::mapped_type;
   using value_type = typename base_type::value_type;
   using hasher = typename base_type::hasher;
   using key_equal = typename base_type::key_equal;
@@ -249,22 +279,22 @@ class UnorderedMultiSet {
   using reference = typename base_type::reference;
   using const_reference = typename base_type::const_reference;
 
-  using iterator = typename base_type::const_iterator;
+  using iterator = typename base_type::iterator;
   using const_iterator = typename base_type::const_iterator;
-  using local_iterator = typename base_type::const_local_iterator;
+  using local_iterator = typename base_type::local_iterator;
   using const_local_iterator = typename base_type::const_local_iterator;
 
   allocator_type get_allocator() const { return ht_.get_allocator(); }
 
  public:
-  UnorderedMultiSet() : ht_(100, Hash(), KeyEqual()) {}
+  UnorderedMultiMap() : ht_(100, Hash(), KeyEqual()) {}
 
-  explicit UnorderedMultiSet(
+  explicit UnorderedMultiMap(
       size_type bucket_count, const Hash& hash = Hash(), const KeyEqual& equal = KeyEqual())
       : ht_(bucket_count, hash, equal) {}
 
   template <typename InputIterator>
-  UnorderedMultiSet(
+  UnorderedMultiMap(
       InputIterator first,
       InputIterator last,
       const size_type bucket_count = 100,
@@ -278,7 +308,7 @@ class UnorderedMultiSet {
     }
   }
 
-  UnorderedMultiSet(
+  UnorderedMultiMap(
       std::initializer_list<value_type> ilist,
       const size_type bucket_count = 100,
       const Hash& hash = Hash(),
@@ -289,19 +319,19 @@ class UnorderedMultiSet {
     }
   }
 
-  UnorderedMultiSet(const UnorderedMultiSet& rhs) : ht_(rhs.ht_) {}
-  UnorderedMultiSet(UnorderedMultiSet&& rhs) noexcept : ht_(mystl::move(rhs.ht_)) {}
+  UnorderedMultiMap(const UnorderedMultiMap& rhs) : ht_(rhs.ht_) {}
+  UnorderedMultiMap(UnorderedMultiMap&& rhs) noexcept : ht_(mystl::move(rhs.ht_)) {}
 
-  UnorderedMultiSet& operator=(const UnorderedMultiSet& rhs) {
+  UnorderedMultiMap& operator=(const UnorderedMultiMap& rhs) {
     ht_ = rhs.ht_;
     return *this;
   }
-  UnorderedMultiSet& operator=(UnorderedMultiSet&& rhs) {
+  UnorderedMultiMap& operator=(UnorderedMultiMap&& rhs) noexcept {
     ht_ = mystl::move(rhs.ht_);
     return *this;
   }
 
-  UnorderedMultiSet& operator=(std::initializer_list<value_type> ilist) {
+  UnorderedMultiMap& operator=(std::initializer_list<value_type> ilist) {
     ht_.clear();
     ht_.reserve(ilist.size());
     for (auto first = ilist.begin(), last = ilist.end(); first != last; ++first) {
@@ -310,9 +340,8 @@ class UnorderedMultiSet {
     return *this;
   }
 
-  ~UnorderedMultiSet() = default;
+  ~UnorderedMultiMap() = default;
 
-  // 迭代器相关
   iterator begin() noexcept { return ht_.begin(); }
   const_iterator begin() const noexcept { return ht_.begin(); }
   iterator end() noexcept { return ht_.end(); }
@@ -321,12 +350,10 @@ class UnorderedMultiSet {
   const_iterator cbegin() const noexcept { return ht_.cbegin(); }
   const_iterator cend() const noexcept { return ht_.cend(); }
 
-  // 容量相关
   bool empty() const noexcept { return ht_.empty(); }
   size_type size() const noexcept { return ht_.size(); }
   size_type max_size() const noexcept { return ht_.max_size(); }
 
-  // 修改容器相关操作
   template <typename... Args>
   iterator emplace(Args&&... args) {
     return ht_.emplace_multi(mystl::forward<Args>(args)...);
@@ -359,7 +386,7 @@ class UnorderedMultiSet {
 
   void clear() { ht_.clear(); }
 
-  void swap(UnorderedMultiSet& other) noexcept { ht_.swap(other.ht_); }
+  void swap(UnorderedMultiMap& other) noexcept { ht_.swap(other.ht_); }
 
   size_type count(const key_type& key) const { return ht_.count(key); }
 
@@ -383,9 +410,8 @@ class UnorderedMultiSet {
   size_type max_bucket_count() const noexcept { return ht_.max_bucket_count(); }
 
   size_type bucket_size(size_type n) const noexcept { return ht_.bucket_size(n); }
-  size_type bucket(const key_type& key) const { return ht_.bucket(key); }
+  size_type bucket(const key_type& key) const noexcept { return ht_.bucket(key); }
 
-  // hash policy
   float load_factor() const noexcept { return ht_.load_factor(); }
 
   float max_load_factor() const noexcept { return ht_.max_load_factor(); }
@@ -395,37 +421,37 @@ class UnorderedMultiSet {
   void reserve(size_type count) { ht_.reserve(count); }
 
   hasher hash_fcn() const { return ht_.hash_fcn(); }
-  key_equal key_eq() const { return ht_.key_eq(); }
+  hasher key_eq() const { return ht_.key_eq(); }
 
  public:
-  friend bool operator==(const UnorderedMultiSet& lhs, const UnorderedMultiSet& rhs) {
+  friend bool operator==(const UnorderedMultiMap& lhs, const UnorderedMultiMap& rhs) {
     return lhs.ht_.equal_to_multi(rhs.ht_);
   }
-  friend bool operator!=(const UnorderedMultiSet& lhs, const UnorderedMultiSet& rhs) {
+  friend bool operator!=(const UnorderedMultiMap& lhs, const UnorderedMultiMap& rhs) {
     return !lhs.ht_.equal_to_multi(rhs.ht_);
   }
 };
 
-template <typename Key, typename Hash, typename KeyEqual>
+template <typename Key, typename T, typename Hash, typename KeyEqual>
 bool operator==(
-    const UnorderedMultiSet<Key, Hash, KeyEqual>& lhs,
-    const UnorderedMultiSet<Key, Hash, KeyEqual>& rhs) {
+    const UnorderedMultiMap<Key, T, Hash, KeyEqual>& lhs,
+    const UnorderedMultiMap<Key, T, Hash, KeyEqual>& rhs) {
   return lhs == rhs;
 }
 
-template <typename Key, typename Hash, typename KeyEqual>
+template <typename Key, typename T, typename Hash, typename KeyEqual>
 bool operator!=(
-    const UnorderedMultiSet<Key, Hash, KeyEqual>& lhs,
-    const UnorderedMultiSet<Key, Hash, KeyEqual>& rhs) {
+    const UnorderedMultiMap<Key, T, Hash, KeyEqual>& lhs,
+    const UnorderedMultiMap<Key, T, Hash, KeyEqual>& rhs) {
   return lhs != rhs;
 }
 
-template <typename Key, typename Hash, typename KeyEqual>
+template <typename Key, typename T, typename Hash, typename KeyEqual>
 void swap(
-    const UnorderedMultiSet<Key, Hash, KeyEqual>& lhs,
-    const UnorderedMultiSet<Key, Hash, KeyEqual>& rhs) {
+    const UnorderedMultiMap<Key, T, Hash, KeyEqual>& lhs,
+    const UnorderedMultiMap<Key, T, Hash, KeyEqual>& rhs) {
   lhs.swap(rhs);
 }
 
 }  // namespace mystl
-#endif  // !MYTINYSTL_UNORDERED_SET_H_
+#endif  // !MYTINYSTL_UNORDERED_MAP_H_

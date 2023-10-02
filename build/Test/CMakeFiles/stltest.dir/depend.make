@@ -10,18 +10,18 @@ Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/functional.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/hashtable.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/heap_algo.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/iterator.h
+Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/map.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/memory.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/rb_tree.h
-Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/set.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/type_traits.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/uninitialized.h
-Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/unordered_set.h
+Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/unordered_map.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/util.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../MyTinySTL/vector.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/Lib/redbud/io/color.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/Lib/redbud/platform.h
-Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/set_test.h
+Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/map_test.h
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/test.cpp
 Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/test.h
-Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/unordered_set_test.h
+Test/CMakeFiles/stltest.dir/test.cpp.o: ../Test/unordered_map_test.h
 
