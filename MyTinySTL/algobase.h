@@ -2,6 +2,7 @@
 #define MYTINYSTL_ALGOBASE_H_
 
 // 包含基本算法
+// 对应书6.4节
 
 #include <cstring>
 
@@ -159,6 +160,18 @@ BidirectionalIter2 copy_backward(
   return unchecked_copy_backward(first, last, result);
 }
 
+// copy_if
+// 把[frist, last)内满足一元操作unary_pred的元素拷贝到以result为起始的位置上
+template <typename InputIter, typename OutputIter, typename UnaryPredicate>
+OutputIter copy_if(InputIter first, InputIter last, OutputIter result, UnaryPredicate unary_pred) {
+  for (; first != last; ++first) {
+    if (unary_pred(*first)) {
+      *result++ = *first;
+    }
+  }
+  return result;
+}
+
 // copy_n
 // 把[first, first + n)区间上的元素拷贝到[result, result + n)上
 // 返回一个pair分别指向拷贝结束的尾部
@@ -181,55 +194,6 @@ mystl::pair<RandomIter, OutputIter> unchecked_copy_n(
 template <typename InputIter, typename Size, typename OutputIter>
 mystl::pair<InputIter, OutputIter> copy_n(InputIter first, Size n, OutputIter result) {
   return unchecked_copy_n(first, n, result, iterator_category(first));
-}
-
-// fill_n
-// 从first位置开始填充n个值
-template <typename OutputIter, typename Size, typename T>
-OutputIter unchecked_fill_n(OutputIter first, Size n, const T& value) {
-  for (; n > 0; --n, ++first) {
-    *first = value;
-  }
-  return first;
-}
-
-// 为one-byte类型提供特化版本
-template <typename Tp, typename Size, typename Up>
-typename std::enable_if<
-    std::is_integral<Tp>::value && sizeof(Tp) == 1 && !std::is_same<Tp, bool>::value &&
-        std::is_integral<Up>::value && sizeof(Up) == 1,
-    Tp*>::type
-unchecked_fill_n(Tp* first, Size n, Up value) {
-  if (n > 0) {
-    std::memset(first, (unsigned char)value, (size_t)(n));
-  }
-  return first + n;
-}
-
-template <typename OutputIter, typename Size, typename T>
-OutputIter fill_n(OutputIter first, Size n, const T& value) {
-  return unchecked_fill_n(first, n, value);
-}
-
-// fill
-// 为[first, last)区间内的所有元素填充新值
-template <typename ForwardIter, typename T>
-void fill_cat(
-    ForwardIter first, ForwardIter last, const T& value, mystl::ForwardIteratorTag /*unused*/) {
-  for (; first != last; ++first) {
-    *first = value;
-  }
-}
-
-template <typename RandomIter, typename T>
-void fill_cat(
-    RandomIter first, RandomIter last, const T& value, mystl::RandomAccessIteratorTag /*unused*/) {
-  fill_n(first, last - first, value);
-}
-
-template <typename ForwardIter, typename T>
-void fill(ForwardIter first, ForwardIter last, const T& value) {
-  fill_cat(first, last, value, iterator_category(first));
 }
 
 // move
@@ -358,6 +322,54 @@ bool equal(InputIter1 first1, InputIter1 last1, InputIter2 first2, Compared comp
   return true;
 }
 
+// fill_n
+// 从first位置开始填充n个值
+template <typename OutputIter, typename Size, typename T>
+OutputIter unchecked_fill_n(OutputIter first, Size n, const T& value) {
+  for (; n > 0; --n, ++first) {
+    *first = value;
+  }
+  return first;
+}
+
+// 为one-byte类型提供特化版本
+template <typename Tp, typename Size, typename Up>
+typename std::enable_if<
+    std::is_integral<Tp>::value && sizeof(Tp) == 1 && !std::is_same<Tp, bool>::value &&
+        std::is_integral<Up>::value && sizeof(Up) == 1,
+    Tp*>::type
+unchecked_fill_n(Tp* first, Size n, Up value) {
+  if (n > 0) {
+    std::memset(first, (unsigned char)value, (size_t)(n));
+  }
+  return first + n;
+}
+
+template <typename OutputIter, typename Size, typename T>
+OutputIter fill_n(OutputIter first, Size n, const T& value) {
+  return unchecked_fill_n(first, n, value);
+}
+
+// fill
+// 为[first, last)区间内的所有元素填充新值
+template <typename ForwardIter, typename T>
+void fill_cat(
+    ForwardIter first, ForwardIter last, const T& value, mystl::ForwardIteratorTag /*unused*/) {
+  for (; first != last; ++first) {
+    *first = value;
+  }
+}
+
+template <typename RandomIter, typename T>
+void fill_cat(
+    RandomIter first, RandomIter last, const T& value, mystl::RandomAccessIteratorTag /*unused*/) {
+  fill_n(first, last - first, value);
+}
+
+template <typename ForwardIter, typename T>
+void fill(ForwardIter first, ForwardIter last, const T& value) {
+  fill_cat(first, last, value, iterator_category(first));
+}
 // lexicographical_compare
 // 字典序比较
 template <typename InputIter1, typename InputIter2>
@@ -401,6 +413,29 @@ bool lexicographical_compare(
   const auto result = std::memcmp(first1, first2, mystl::min(len1, len2));
   // 若相等，长度较大的比较大
   return result != 0 ? result < 0 : len1 < len2;
+}
+
+// mismatch
+// 平行比较两个序列，找到第一处失配的元素，返回一对迭代器，分别指向两个序列中失配的元素
+template <typename InputIter1, typename InputIter2>
+mystl::pair<InputIter1, InputIter2> mismatch(
+    InputIter1 first1, InputIter1 last1, InputIter2 first2) {
+  while (first1 != last1 && *first1 == *first2) {
+    ++first1;
+    ++first2;
+  }
+  return mystl::pair<InputIter1, InputIter2>(first1, first2);
+}
+
+// 重载版本使用函数对象comp代替比较操作
+template <typename InputIter1, typename InputIter2, typename Compred>
+mystl::pair<InputIter1, InputIter2> mismatch(
+    InputIter1 first1, InputIter1 last1, InputIter2 first2, Compred comp) {
+  while (first1 != last1 && comp(*first1, *first2)) {
+    ++first1;
+    ++first2;
+  }
+  return mystl::pair<InputIter1, InputIter2>(first1, first2);
 }
 
 }  // namespace mystl
