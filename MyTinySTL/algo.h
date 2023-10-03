@@ -1205,7 +1205,7 @@ void random_shuffle(RandomIter first, RandomIter last, RandomNumberGenerator& ra
 // 将[first, middle)内的元素和[middle, last)内的元素互换，可以交换两个长度不同的区间
 // 返回交换后middle的位置
 
-//
+// ForwardIteratorTag版本
 template <typename ForwardIter>
 ForwardIter rotate_dispatch(
     ForwardIter first, ForwardIter middle, ForwardIter last, ForwardIteratorTag /*tag*/) {
@@ -1228,6 +1228,99 @@ ForwardIter rotate_dispatch(
     }
   }
   return new_middle;
+}
+
+// rotate_dispatch的BidirectionalIteratorTag版本
+template <typename BidirectionalIter>
+BidirectionalIter rotate_dispatch(
+    BidirectionalIter first,
+    BidirectionalIter middle,
+    BidirectionalIter last,
+    BidirectionalIteratorTag /*tag*/) {
+  mystl::reverse_dispatch(first, middle, BidirectionalIteratorTag());
+  mystl::reverse_dispatch(middle, last, BidirectionalIteratorTag());
+  while (first != middle && middle != last) {
+    mystl::swap(*first++, *--last);
+  }
+  if (first == middle) {
+    mystl::reverse_dispatch(middle, last, BidirectionalIteratorTag());
+    return last;
+  } else {
+    mystl::reverse_dispatch(first, middle, BidirectionalIteratorTag());
+    return first;
+  }
+}
+
+// 求最大公因子
+template <typename EuclideanRingElement>
+EuclideanRingElement rgcd(EuclideanRingElement m, EuclideanRingElement n) {
+  while (n != 0) {
+    auto t = m % n;
+    m = n;
+    n = t;
+  }
+  return m;
+}
+
+// rotate_dispatch的RandomAccessIteratorTag版本
+template <typename RandomIter>
+RandomIter rotate_dispatch(
+    RandomIter first, RandomIter middle, RandomIter last, RandomAccessIteratorTag /*tag*/) {
+  // 因为是random access iterator，我们可以确定每个元素的位置
+  auto n = last - first;
+  auto l = middle - first;
+  auto r = n - l;
+  auto result = first + (last - middle);
+  if (l == r) {
+    mystl::swap_ranges(first, middle, middle);
+    return result;
+  }
+  auto cycle_times = rgcd(n, l);
+  for (auto i = 0; i < cycle_times; ++i) {
+    auto tmp = *first;
+    auto p = first;
+    if (l < r) {
+      for (auto j = 0; j < r / cycle_times; ++j) {
+        if (p > first + r) {
+          *p = *(p - r);
+          p -= r;
+        }
+        *p = *(p + l);
+        p += l;
+      }
+    } else {
+      for (auto j = 0; j < l / cycle_times; ++j) {
+        if (p > first + l) {
+          *p = *(p - l);
+          p -= l;
+        }
+        *p = *(p + r);
+        p += r;
+      }
+    }
+    *p = tmp;
+    ++first;
+  }
+  return result;
+}
+
+template <typename ForwardIter>
+ForwardIter rotate(ForwardIter first, ForwardIter middle, ForwardIter last) {
+  if (first == middle) {
+    return last;
+  }
+  if (middle == last) {
+    return first;
+  }
+  return mystl::rotate_dispatch(first, middle, last, iterator_category(first));
+}
+
+// rotate_copy
+// 行为与rotate类似，不同的是将结果复制到result所指的容器中
+template <typename ForwardIter, typename OutputIter>
+ForwardIter rotate_copy(
+    ForwardIter first, ForwardIter middle, ForwardIter last, OutputIter result) {
+  return mystl::copy(first, middle, mystl::copy(middle, last, result));
 }
 
 // is_permutation
@@ -1326,6 +1419,291 @@ bool is_permutation(
   static_assert(std::is_same<v1, v2>::kValue, "the type should be same in mystl::is_permutation");
   return is_permutation_aux(first1, last1, first2, last2, mystl::EqualTo<v1>());
 }
+
+// next_permutation
+// 取得[first, last)所标示序列的下一个排列组合，如果没有下一个组合，返回false
+template <typename BidirectionalIter>
+bool next_permutation(BidirectionalIter first, BidirectionalIter last) {
+  auto i = last;
+  if (first == last || first == --i) {
+    return false;
+  }
+  for (;;) {
+    auto ii = i;
+    if (*--i < *ii) {
+      auto j = last;
+      while (!(*i < *--j)) {
+      }
+      mystl::iter_swap(i, j);
+      mystl::reverse(ii, last);
+      return true;
+    }
+    if (i == first) {
+      mystl::reverse(first, last);
+      return false;
+    }
+  }
+}
+
+// 重载comp
+template <typename BidirectionalIter, typename Compared>
+bool next_permutation(BidirectionalIter first, BidirectionalIter last, Compared comp) {
+  auto i = last;
+  if (first == last || first == --i) {
+    return false;
+  }
+  for (;;) {
+    auto ii = i;
+    if (comp(*--i, *ii)) {
+      auto j = last;
+      while (!comp(*i, *--j)) {
+      }
+      mystl::iter_swap(i, j);
+      mystl::reverse(ii, last);
+      return true;
+    }
+    if (i == first) {
+      mystl::reverse(first, last);
+      return false;
+    }
+  }
+}
+
+// prev_permutation
+// 取得[first, last)所标示序列的上一个排列组合，如果没有上一个组合，返回false
+template <typename BidirectionalIter>
+bool prev_permutation(BidirectionalIter first, BidirectionalIter last) {
+  auto i = last;
+  if (first == last || first == --i) {
+    return false;
+  }
+  for (;;) {
+    auto ii = i;
+    if (*ii < *--i) {
+      auto j = last;
+      while (!(*--j < *i)) {
+      }
+      mystl::iter_swap(i, j);
+      mystl::reverse(ii, last);
+      return true;
+    }
+    if (i == first) {
+      mystl::reverse(first, last);
+      return false;
+    }
+  }
+}
+
+// 重载comp
+template <typename BidirectionalIter, typename Compared>
+bool prev_permutation(BidirectionalIter first, BidirectionalIter last, Compared comp) {
+  auto i = last;
+  if (first == last || first == --i) {
+    return false;
+  }
+  for (;;) {
+    auto ii = i;
+    if (comp(*ii, *--i)) {
+      auto j = last;
+      while (!comp(*--j, *i)) {
+      }
+      mystl::iter_swap(i, j);
+      mystl::reverse(ii, last);
+      return true;
+    }
+    if (i == first) {
+      mystl::reverse(first, last);
+      return false;
+    }
+  }
+}
+
+// merge
+// 将两个经过排序的集合S1和S2合并起来置于另一段空间，返回一个迭代器指向最后一个元素的下一个位置
+template <typename InputIter1, typename InputIter2, typename OutputIter>
+OutputIter merge(
+    InputIter1 first1, InputIter1 last1, InputIter2 first2, InputIter2 last2, OutputIter result) {
+  while (first1 != last1 && first2 != last2) {
+    if (*first2 < *first1) {
+      *result = *first2;
+      ++first2;
+    } else {
+      *result = *first1;
+      ++first1;
+    }
+    ++result;
+  }
+  return mystl::copy(first2, last2, mystl::copy(first1, last1, result));
+}
+
+// 重载comp
+template <typename InputIter1, typename InputIter2, typename OutputIter, typename Compared>
+OutputIter merge(
+    InputIter1 first1,
+    InputIter1 last1,
+    InputIter2 first2,
+    InputIter2 last2,
+    OutputIter result,
+    Compared comp) {
+  while (first1 != last1 && first2 != last2) {
+    if (comp(*first2, *first1)) {
+      *result = *first2;
+      ++first2;
+    } else {
+      *result = *first1;
+      ++first1;
+    }
+    ++result;
+  }
+  return mystl::copy(first2, last2, mystl::copy(first1, last1, result));
+}
+
+// inplace_merge
+// 把连接在一起的两个有序序列结合成单一序列并保持有序
+
+// 没有缓冲区的情况下
+template <typename BidirectionalIter, typename Distance>
+void merge_without_buffer(
+    BidirectionalIter first,
+    BidirectionalIter middle,
+    BidirectionalIter last,
+    Distance len1,
+    Distance len2) {
+  if (len1 == 0 || len2 == 0) {
+    return;
+  }
+  if (len1 + len2 == 2) {
+    if (*middle < *first) {
+      mystl::iter_swap(first, middle);
+    }
+    return;
+  }
+  auto first_cut = first;
+  auto second_cut = middle;
+  Distance len11 = 0;
+  Distance len22 = 0;
+  if (len1 > len2) {
+    // 序列一比较长，找到序列一的中点
+    len11 = len1 >> 1;
+    mystl::advance(first_cut, len11);
+    second_cut = mystl::lower_bound(middle, last, *first_cut);
+    len22 = mystl::distance(middle, second_cut);
+  } else {
+    // 序列二比较长，找到序列二的中点
+    len22 = len2 >> 1;
+    mystl::advance(second_cut, len22);
+    first_cut = mystl::upper_bound(first, middle, *second_cut);
+    len11 = mystl::distance(first, first_cut);
+  }
+  auto new_middle = mystl::rotate(first_cut, middle, second_cut);
+  mystl::merge_without_buffer(first, first_cut, new_middle, len11, len22);
+  mystl::merge_without_buffer(new_middle, second_cut, last, len1 - len11, len2 - len22);
+}
+
+template <typename BidirectionalIter1, typename BidirectionalIter2>
+BidirectionalIter1 merge_backward(
+    BidirectionalIter1 first1,
+    BidirectionalIter1 last1,
+    BidirectionalIter2 first2,
+    BidirectionalIter2 last2,
+    BidirectionalIter1 result) {
+  if (first1 == last1) {
+    return mystl::copy_backward(first2, last2, result);
+  }
+  if (first2 == last2) {
+    return mystl::copy_backward(first1, last1, result);
+  }
+  --last1;
+  --last2;
+  while (true) {
+    if (*last2 < *last1) {
+      *--result = *last1;
+      if (first1 == last1) {
+        return mystl::copy_backward(first2, ++last2, result);
+      }
+      --last1;
+    } else {
+      *--result = *last2;
+      if (first2 == last2) {
+        return mystl::copy_backward(first1, ++last1, result);
+      }
+      --last2;
+    }
+  }
+}
+
+template <typename BidirectionalIter1, typename BidirectionalIter2, typename Distance>
+BidirectionalIter1 rotate_adaptive(
+    BidirectionalIter1 first,
+    BidirectionalIter1 middle,
+    BidirectionalIter1 last,
+    Distance len1,
+    Distance len2,
+    BidirectionalIter2 buffer,
+    Distance buffer_size) {
+  BidirectionalIter2 buffer_end;
+  if (len1 > len2 && len2 <= buffer_size) {
+    buffer_end = mystl::copy(middle, last, buffer);
+    mystl::copy_backward(first, middle, last);
+    return mystl::copy(buffer, buffer_end, first);
+  } else if (len1 <= buffer_size) {
+    buffer_end = mystl::copy(first, middle, buffer);
+    mystl::copy_backward(middle, last, first);
+    return mystl::copy(buffer, buffer_end, last);
+  } else {
+    return mystl::rotate(first, middle, last);
+  }
+}
+
+// 有缓冲区的情况下合并
+template <typename BidirectionalIter, typename Distance, typename Pointer>
+void merge_adaptive(
+    BidirectionalIter first,
+    BidirectionalIter middle,
+    BidirectionalIter last,
+    Distance len1,
+    Distance len2,
+    Pointer buffer,
+    Distance buffer_size) {
+  // 区间足够放进缓冲区
+  if (len1 <= len2 && len1 <= buffer_size) {
+    Pointer buffer_end = mystl::copy(first, middle, buffer);
+    mystl::merge(buffer, buffer_end, middle, last, first);
+  } else if (len2 <= buffer_size) {
+    Pointer buffer_end = mystl::copy(middle, last, buffer);
+    mystl::merge_backward(first, middle, buffer, buffer_end, last);
+  } else {
+    // 区间长度太长，分割递归处理
+    auto first_cut = first;
+    auto second_cut = middle;
+    Distance len11 = 0;
+    Distance len22 = 0;
+    if (len1 > len2) {
+      len11 = len1 >> 1;
+      mystl::advance(first_cut, len11);
+      second_cut = mystl::lower_bound(middle, last, *first_cut);
+      len22 = mystl::distance(middle, second_cut);
+    } else {
+      len22 = len2 >> 1;
+      mystl::advance(second_cut, len22);
+      first_cut = mystl::upper_bound(first, middle, *second_cut);
+      len11 = mystl::distance(first, first_cut);
+    }
+    auto new_middle = mystl::rotate_adaptive(
+        first_cut, middle, second_cut, len1 - len11, len22, buffer, buffer_size);
+    mystl::merge_adaptive(first, first_cut, new_middle, len11, len22, buffer, buffer_size);
+    mystl::merge_adaptive(
+        new_middle, second_cut, last, len1 - len11, len2 - len22, buffer, buffer_size);
+  }
+}
+
+// template <typename BidirectionalIter, typename T>
+// void inplace_merge_aux(
+//     BidirectionalIter first, BidirectionalIter middle, BidirectionalIter last, T* /*unused*/) {
+//   auto len1 = mystl::distance(first, middle);
+//   auto len2 = mystl::distance(middle, last);
+//   tempo
+// }
 
 }  // namespace mystl
 
