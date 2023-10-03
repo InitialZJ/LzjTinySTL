@@ -1697,13 +1697,168 @@ void merge_adaptive(
   }
 }
 
-// template <typename BidirectionalIter, typename T>
-// void inplace_merge_aux(
-//     BidirectionalIter first, BidirectionalIter middle, BidirectionalIter last, T* /*unused*/) {
-//   auto len1 = mystl::distance(first, middle);
-//   auto len2 = mystl::distance(middle, last);
-//   tempo
-// }
+template <typename BidirectionalIter, typename T>
+void inplace_merge_aux(
+    BidirectionalIter first, BidirectionalIter middle, BidirectionalIter last, T* /*unused*/) {
+  auto len1 = mystl::distance(first, middle);
+  auto len2 = mystl::distance(middle, last);
+  TemporaryBuffer<BidirectionalIter, T> buf(first, last);
+  if (!buf.begin()) {
+    mystl::merge_without_buffer(first, middle, last, len1, len2);
+  } else {
+    mystl::merge_adaptive(first, middle, last, len1, len2, buf.begin(), buf.size());
+  }
+}
+
+template <typename BidirectionalIter>
+void inplace_merge(BidirectionalIter first, BidirectionalIter middle, BidirectionalIter last) {
+  if (first == middle || middle == last) {
+    return;
+  }
+  mystl::inplace_merge_aux(first, middle, last, value_type(first));
+}
+
+// 没有缓冲区的情况下重载comp
+template <typename BidirectionalIter, typename Distance, typename Compared>
+void merge_without_buffer(
+    BidirectionalIter first,
+    BidirectionalIter middle,
+    BidirectionalIter last,
+    Distance len1,
+    Distance len2,
+    Compared comp) {
+  if (len1 == 0 || len2 == 0) {
+    return;
+  }
+  if (len1 + len2 == 2) {
+    if (comp(*middle, *first)) {
+      mystl::iter_swap(first, middle);
+    }
+    return;
+  }
+  auto first_cut = first;
+  auto second_cut = middle;
+  Distance len11 = 0;
+  Distance len22 = 0;
+  if (len1 > len2) {
+    // 序列一比较长，找到序列一的中点
+    len11 = len1 >> 1;
+    mystl::advance(first_cut, len11);
+    second_cut = mystl::lower_bound(middle, last, *first_cut, comp);
+    len22 = mystl::distance(middle, second_cut);
+  } else {
+    // 序列二比较长，找到序列二的中点
+    len22 = len2 >> 1;
+    mystl::advance(second_cut, len22);
+    first_cut = mystl::upper_bound(first, middle, *second_cut, comp);
+    len11 = mystl::distance(first, first_cut);
+  }
+  auto new_middle = mystl::rotate(first_cut, middle, second_cut);
+  mystl::merge_without_buffer(first, first_cut, new_middle, len11, len22, comp);
+  mystl::merge_without_buffer(new_middle, second_cut, last, len1 - len11, len2 - len22, comp);
+}
+
+template <typename BidirectionalIter1, typename BidirectionalIter2, typename Compared>
+BidirectionalIter1 merge_backward(
+    BidirectionalIter1 first1,
+    BidirectionalIter1 last1,
+    BidirectionalIter2 first2,
+    BidirectionalIter2 last2,
+    BidirectionalIter1 result,
+    Compared comp) {
+  if (first1 == last1) {
+    return mystl::copy_backward(first2, last2, result);
+  }
+  if (first2 == last2) {
+    return mystl::copy_backward(first1, last1, result);
+  }
+  --last1;
+  --last2;
+  while (true) {
+    if (comp(*last2, *last1)) {
+      *--result = *last1;
+      if (first1 == last1) {
+        return mystl::copy_backward(first2, ++last2, result);
+      }
+      --last1;
+    } else {
+      *--result = *last2;
+      if (first2 == last2) {
+        return mystl::copy_backward(first1, ++last1, result);
+      }
+      --last2;
+    }
+  }
+}
+
+// 有缓冲区的情况下合并重载comp
+template <typename BidirectionalIter, typename Distance, typename Pointer, typename Compared>
+void merge_adaptive(
+    BidirectionalIter first,
+    BidirectionalIter middle,
+    BidirectionalIter last,
+    Distance len1,
+    Distance len2,
+    Pointer buffer,
+    Distance buffer_size,
+    Compared comp) {
+  // 区间足够放进缓冲区
+  if (len1 <= len2 && len1 <= buffer_size) {
+    Pointer buffer_end = mystl::copy(first, middle, buffer);
+    mystl::merge(buffer, buffer_end, middle, last, first, comp);
+  } else if (len2 <= buffer_size) {
+    Pointer buffer_end = mystl::copy(middle, last, buffer);
+    mystl::merge_backward(first, middle, buffer, buffer_end, last, comp);
+  } else {
+    // 区间长度太长，分割递归处理
+    auto first_cut = first;
+    auto second_cut = middle;
+    Distance len11 = 0;
+    Distance len22 = 0;
+    if (len1 > len2) {
+      len11 = len1 >> 1;
+      mystl::advance(first_cut, len11);
+      second_cut = mystl::lower_bound(middle, last, *first_cut, comp);
+      len22 = mystl::distance(middle, second_cut);
+    } else {
+      len22 = len2 >> 1;
+      mystl::advance(second_cut, len22);
+      first_cut = mystl::upper_bound(first, middle, *second_cut, comp);
+      len11 = mystl::distance(first, first_cut);
+    }
+    auto new_middle = mystl::rotate_adaptive(
+        first_cut, middle, second_cut, len1 - len11, len22, buffer, buffer_size);
+    mystl::merge_adaptive(first, first_cut, new_middle, len11, len22, buffer, buffer_size, comp);
+    mystl::merge_adaptive(
+        new_middle, second_cut, last, len1 - len11, len2 - len22, buffer, buffer_size, comp);
+  }
+}
+
+template <typename BidirectionalIter, typename T, typename Compared>
+void inplace_merge_aux(
+    BidirectionalIter first,
+    BidirectionalIter middle,
+    BidirectionalIter last,
+    T* /*unused*/,
+    Compared comp) {
+  auto len1 = mystl::distance(first, middle);
+  auto len2 = mystl::distance(middle, last);
+  TemporaryBuffer<BidirectionalIter, T> buf(first, last);
+  if (!buf.begin()) {
+    mystl::merge_without_buffer(first, middle, last, len1, len2, comp);
+  } else {
+    mystl::merge_adaptive(first, middle, last, len1, len2, buf.begin(), buf.size(), comp);
+  }
+}
+
+template <typename BidirectionalIter, typename Compared>
+void inplace_merge(
+    BidirectionalIter first, BidirectionalIter middle, BidirectionalIter last, Compared comp) {
+  if (first == middle || middle == last) {
+    return;
+  }
+  mystl::inplace_merge_aux(first, middle, last, value_type(first), comp);
+}
 
 }  // namespace mystl
 
