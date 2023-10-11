@@ -1860,6 +1860,349 @@ void inplace_merge(
   mystl::inplace_merge_aux(first, middle, last, value_type(first), comp);
 }
 
+// partial_sort
+// 对整个序列做部分排序，保证较小的N个元素以递增顺序置于[first, first+N)中
+template <typename RandomIter>
+void partial_sort(RandomIter first, RandomIter middle, RandomIter last) {
+  mystl::make_heap(first, middle);
+  for (auto i = middle; i < last; ++i) {
+    if (*i < *first) {
+      mystl::pop_heap_aux(first, middle, i, *i, distance_type(first));
+    }
+  }
+  mystl::sort_heap(first, middle);
+}
+
+// 重载comp
+template <typename RandomIter, typename Compared>
+void partial_sort(RandomIter first, RandomIter middle, RandomIter last, Compared comp) {
+  mystl::make_heap(first, middle, comp);
+  for (auto i = middle; i < last; ++i) {
+    if (comp(*i, *first)) {
+      mystl::pop_heap_aux(first, middle, i, *i, distance_type(first), comp);
+    }
+  }
+  mystl::sort_heap(first, middle, comp);
+}
+
+// partial_sort_copy
+// 行为与partial_sort类似，不同的是把排序结果复制到result容器中
+template <typename InputIter, typename RandomIter, typename Distance>
+RandomIter psort_copy_aux(
+    InputIter first,
+    InputIter last,
+    RandomIter result_first,
+    RandomIter result_last,
+    Distance* /*unused*/) {
+  if (result_first == result_last) {
+    return result_last;
+  }
+  auto result_iter = result_first;
+  while (first != last && result_iter != result_last) {
+    *result_iter = *first;
+    ++result_iter;
+    ++first;
+  }
+  mystl::make_heap(result_first, result_iter);
+  while (first != last) {
+    if (*first < *result_first) {
+      mystl::adjust_heap(
+          result_first, static_cast<Distance>(0), result_iter - result_first, *first);
+    }
+    ++first;
+  }
+  mystl::sort_heap(result_first, result_iter);
+  return result_iter;
+}
+
+template <typename InputIter, typename RandomIter>
+RandomIter partial_sort_copy(
+    InputIter first, InputIter last, RandomIter result_first, RandomIter result_last) {
+  return mystl::psort_copy_aux(first, last, result_first, result_last, distance_type(result_first));
+}
+
+// 重载comp
+template <typename InputIter, typename RandomIter, typename Distance, typename Compared>
+RandomIter psort_copy_aux(
+    InputIter first,
+    InputIter last,
+    RandomIter result_first,
+    RandomIter result_last,
+    Distance* /*unused*/,
+    Compared comp) {
+  if (result_first == result_last) {
+    return result_last;
+  }
+  auto result_iter = result_first;
+  while (first != last && result_iter != result_last) {
+    *result_iter = *first;
+    ++result_iter;
+    ++first;
+  }
+  mystl::make_heap(result_first, result_iter, comp);
+  while (first != last) {
+    if (comp(*first, *result_first)) {
+      mystl::adjust_heap(
+          result_first, static_cast<Distance>(0), result_iter - result_first, *first, comp);
+    }
+    ++first;
+  }
+  mystl::sort_heap(result_first, result_iter, comp);
+  return result_iter;
+}
+
+template <typename InputIter, typename RandomIter, typename Compared>
+RandomIter partial_sort_copy(
+    InputIter first,
+    InputIter last,
+    RandomIter result_first,
+    RandomIter result_last,
+    Compared comp) {
+  return mystl::psort_copy_aux(
+      first, last, result_first, result_last, distance_type(result_first), comp);
+}
+
+// partition
+// 对区间内的元素重排，被一元条件运算判定为true的元素会被放到区间的前段
+// 该函数不保证元素的原始相对位置
+template <typename BidirectionalIter, typename UnaryPredicate>
+BidirectionalIter partition(
+    BidirectionalIter first, BidirectionalIter last, UnaryPredicate unary_pred) {
+  while (true) {
+    while (first != last && unary_pred(*first)) {
+      ++first;
+    }
+    if (first == last) {
+      break;
+    }
+    --last;
+    while (first != last && !unary_pred(*last)) {
+      --last;
+    }
+    if (first == last) {
+      break;
+    }
+    mystl::iter_swap(first, last);
+    ++first;
+  }
+  return first;
+}
+
+// partition_copy
+// 行为与partition类似，不同的是，将被一元操作符判定为true的放到result_true的输出区间
+// 其余放到result_false的输出区间，并返回一个mystl::pair指向这两个区间的尾部
+template <typename InputIter, typename OutputIter1, typename OutputIter2, typename UnaryPredicate>
+mystl::pair<OutputIter1, OutputIter2> partial_sort(
+    InputIter first,
+    InputIter last,
+    OutputIter1 result_true,
+    OutputIter2 result_false,
+    UnaryPredicate unary_pred) {
+  for (; first != last; ++first) {
+    if (unary_pred(*first)) {
+      *result_true++ = *first;
+    } else {
+      *result_false++ = *first;
+    }
+  }
+  return mystl::pair<OutputIter1, OutputIter2>(result_true, result_false);
+}
+
+// sort
+// 将[first, last)内的元素以递增的方式排序
+constexpr static size_t kSmallSectionSize = 128;  // 小于该数使用插入排序，减缓恶化
+
+template <typename Size>
+Size slg2(Size n) {
+  // 找出lg k <= n的k的最大值
+  Size k = 0;
+  for (; n > 1; n >>= 1) {
+    ++k;
+  }
+  return k;
+}
+
+// 分割函数
+template <typename RandomIter, typename T>
+RandomIter unchecked_partition(RandomIter first, RandomIter last, const T& pivot) {
+  while (true) {
+    while (*first < pivot) {
+      ++first;
+    }
+    --last;
+    while (pivot < *last) {
+      --last;
+    }
+    if (!(first < last)) {
+      return first;
+    }
+    mystl::iter_swap(first, last);
+    ++first;
+  }
+}
+
+// 内省式排序，先进行quick sort，当分割行为有恶化倾向时，改用heap sort
+template <typename RandomIter, typename Size>
+void intro_sort(RandomIter first, RandomIter last, Size depth_limit) {
+  while (static_cast<size_t>(last - first) > kSmallSectionSize) {
+    if (depth_limit == 0) {
+      // 到达最大分割深度限制
+      mystl::partial_sort(first, last, last);  // 改用heap_sort
+      return;
+    }
+    --depth_limit;
+    auto mid = mystl::median(*(first), *(first + (last - first) / 2), *(last - 1));
+    auto cut = mystl::unchecked_partition(first, last, mid);
+    mystl::intro_sort(cut, last, depth_limit);
+    last = cut;
+  }
+}
+
+// 插入排序辅助函数unchecked_linear_insert
+template <typename RandomIter, typename T>
+void unchecked_linear_insert(RandomIter last, const T& value) {
+  auto next = last;
+  --next;
+  while (value < *next) {
+    *last = *next;
+    last = next;
+    --next;
+  }
+  *last = value;
+}
+
+// 插入排序函数
+template <typename RandomIter>
+void unchecked_insertion_sort(RandomIter first, RandomIter last) {
+  for (auto i = first; i != last; ++i) {
+    mystl::unchecked_linear_insert(i, *i);
+  }
+}
+
+// 插入排序函数
+template <typename RandomIter>
+void insertion_sort(RandomIter first, RandomIter last) {
+  if (first == last) {
+    return;
+  }
+  for (auto i = first + 1; i != last; ++i) {
+    auto value = *i;
+    if (value < *i) {
+      mystl::copy_backward(first, i, i + 1);
+      *first = value;
+    } else {
+      mystl::unchecked_linear_insert(i, value);
+    }
+  }
+}
+
+// 最终插入排序函数
+template <typename RandomIter>
+void final_insertion_sort(RandomIter first, RandomIter last) {
+  if (static_cast<size_t>(last - first) > kSmallSectionSize) {
+    mystl::insertion_sort(first, first + kSmallSectionSize);
+    mystl::unchecked_insertion_sort(first + kSmallSectionSize, last);
+  } else {
+    mystl::insertion_sort(first, last);
+  }
+}
+
+template <typename RandomIter>
+void sort(RandomIter first, RandomIter last) {
+  if (first != last) {
+    mystl::intro_sort(first, last, slg2(last - first) * 2);
+    mystl::final_insertion_sort(first, last);
+  }
+}
+
+// 重载comp
+template <typename RandomIter, typename T, typename Compared>
+RandomIter unchecked_partition(RandomIter first, RandomIter last, const T& pivot, Compared comp) {
+  while (true) {
+    while (comp(*first, pivot)) {
+      ++first;
+    }
+    --last;
+    while (comp(pivot, *last)) {
+      --last;
+    }
+    if (!(first < last)) {
+      return first;
+    }
+    mystl::iter_swap(first, last);
+    ++first;
+  }
+}
+
+template <typename RandomIter, typename Size, typename Compared>
+void intro_sort(RandomIter first, RandomIter last, Size depth_limit, Compared comp) {
+  while (static_cast<size_t>(last - first) > kSmallSectionSize) {
+    if (depth_limit == 0) {
+      // 到达最大分割深度限制
+      mystl::partial_sort(first, last, last, comp);  // 改用heap_sort
+      return;
+    }
+    --depth_limit;
+    auto mid = mystl::median(*(first), *(first + (last - first) / 2), *(last - 1));
+    auto cut = mystl::unchecked_partition(first, last, mid, comp);
+    mystl::intro_sort(cut, last, depth_limit, comp);
+    last = cut;
+  }
+}
+
+template <typename RandomIter, typename T, typename Compared>
+void unchecked_linear_insert(RandomIter last, const T& value, Compared comp) {
+  auto next = last;
+  --next;
+  while (comp(value, *next)) {
+    *last = *next;
+    last = next;
+    --next;
+  }
+  *last = value;
+}
+
+template <typename RandomIter, typename Compared>
+void unchecked_insertion_sort(RandomIter first, RandomIter last, Compared comp) {
+  for (auto i = first; i != last; ++i) {
+    mystl::unchecked_linear_insert(i, *i, comp);
+  }
+}
+
+template <typename RandomIter, typename Compared>
+void insertion_sort(RandomIter first, RandomIter last, Compared comp) {
+  if (first == last) {
+    return;
+  }
+  for (auto i = first + 1; i != last; ++i) {
+    auto value = *i;
+    if (comp(value, *i)) {
+      mystl::copy_backward(first, i, i + 1);
+      *first = value;
+    } else {
+      mystl::unchecked_linear_insert(i, value, comp);
+    }
+  }
+}
+
+template <typename RandomIter, typename Compared>
+void final_insertion_sort(RandomIter first, RandomIter last, Compared comp) {
+  if (static_cast<size_t>(last - first) > kSmallSectionSize) {
+    mystl::insertion_sort(first, first + kSmallSectionSize, comp);
+    mystl::unchecked_insertion_sort(first + kSmallSectionSize, last, comp);
+  } else {
+    mystl::insertion_sort(first, last, comp);
+  }
+}
+
+template <typename RandomIter, typename Compared>
+void sort(RandomIter first, RandomIter last, Compared comp) {
+  if (first != last) {
+    mystl::intro_sort(first, last, slg2(last - first) * 2, comp);
+    mystl::final_insertion_sort(first, last, comp);
+  }
+}
+
 }  // namespace mystl
 
 #endif  // !MYTINYSTL_ALGO_H_
