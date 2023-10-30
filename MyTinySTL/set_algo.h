@@ -150,10 +150,10 @@ OutputIter set_difference(
   return mystl::copy(first1, last1, result);
 }
 
-// set_summetric_difference
+// set_symmetric_difference
 // 计算(S1 - S2) ∪ (S2 - S1)的结果并保存到result中，返回一个迭代器指向输出结果的尾部
 template <typename InputIter1, typename InputIter2, typename OutputIter>
-OutputIter set_summetric_difference(
+OutputIter set_symmetric_difference(
     InputIter1 first1, InputIter1 last1, InputIter2 first2, InputIter2 last2, OutputIter result) {
   while (first1 != last1 && first2 != last2) {
     if (*first1 < *first2) {
@@ -175,7 +175,7 @@ OutputIter set_summetric_difference(
 
 // 重载版本使用函数对象comp代替比较操作
 template <typename InputIter1, typename InputIter2, typename OutputIter, typename Compared>
-OutputIter set_summetric_difference(
+OutputIter set_symmetric_difference(
     InputIter1 first1,
     InputIter1 last1,
     InputIter2 first2,
