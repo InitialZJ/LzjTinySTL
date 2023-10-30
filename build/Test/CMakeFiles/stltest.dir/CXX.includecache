@@ -30,6 +30,18 @@ iterator.h
 util.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algorithm.h
+algobase.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
+algo.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algo.h
+set_algo.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/set_algo.h
+heap_algo.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/heap_algo.h
+numeric.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/numeric.h
+
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/allocator.h
 construct.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/construct.h
@@ -56,26 +68,6 @@ stdexcept
 cstddef
 -
 
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/hashtable.h
-initializer_list
--
-algo.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algo.h
-exceptdef.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
-functional.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/functional.h
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-memory.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
-type_traits.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
-util.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
-vector.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/vector.h
-
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/heap_algo.h
 iterator.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
@@ -85,16 +77,6 @@ cstddef
 -
 type_traits.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
-
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/map.h
-initializer_list
--
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-rb_tree.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/rb_tree.h
-util.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
 climits
@@ -112,27 +94,15 @@ construct.h
 uninitialized.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/uninitialized.h
 
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/rb_tree.h
-cassert
--
-initializer_list
--
-iostream
--
-algobase.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
-allocator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/allocator.h
-exceptdef.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
-functional.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/functional.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/numeric.h
 iterator.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-memory.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
-type_traits.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
+
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/set_algo.h
+algobase.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
+iterator.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
 
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
 type_traits
@@ -143,16 +113,6 @@ algobase.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
 construct.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/construct.h
-
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/unordered_map.h
-exceptdef.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
-functional.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/functional.h
-hashtable.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/hashtable.h
-util.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 cstddef
@@ -200,11 +160,15 @@ type_traits
 
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/platform.h
 
-/home/lzj/Desktop/LzjTinySTL/Test/map_test.h
-map
+/home/lzj/Desktop/LzjTinySTL/Test/algorithm_test.h
+algorithm
 -
-../MyTinySTL/map.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/map.h
+functional
+-
+numeric
+-
+../MyTinySTL/algorithm.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algorithm.h
 ../MyTinySTL/vector.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/vector.h
 test.h
@@ -215,8 +179,8 @@ crtdbg.h
 -
 stdlib.h
 -
-unordered_map_test.h
-/home/lzj/Desktop/LzjTinySTL/Test/unordered_map_test.h
+algorithm_test.h
+/home/lzj/Desktop/LzjTinySTL/Test/algorithm_test.h
 
 /home/lzj/Desktop/LzjTinySTL/Test/test.h
 cstdio
@@ -237,14 +201,4 @@ vector
 -
 Lib/redbud/io/color.h
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/io/color.h
-
-/home/lzj/Desktop/LzjTinySTL/Test/unordered_map_test.h
-unordered_map
--
-../MyTinySTL/unordered_map.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/unordered_map.h
-map_test.h
-/home/lzj/Desktop/LzjTinySTL/Test/map_test.h
-test.h
-/home/lzj/Desktop/LzjTinySTL/Test/test.h
 

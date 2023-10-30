@@ -703,7 +703,7 @@ mystl::pair<RandomIter, RandomIter> erange_dispatch(
       len = half;
     } else {
       left = mystl::lower_bound(first, last, value);
-      right = mystl::upper_bound((++middle, first + len, value));
+      right = mystl::upper_bound(++middle, first + len, value);
       return mystl::pair<RandomIter, RandomIter>(left, right);
     }
   }
@@ -761,11 +761,11 @@ mystl::pair<RandomIter, RandomIter> erange_dispatch(
     if (comp(*middle, value)) {
       first = middle + 1;
       len = len - half - 1;
-    } else if (copm(value, *middle)) {
+    } else if (comp(value, *middle)) {
       len = half;
     } else {
       left = mystl::lower_bound(first, last, value, comp);
-      right = mystl::upper_bound((++middle, first + len, value, comp));
+      right = mystl::upper_bound(++middle, first + len, value, comp);
       return mystl::pair<RandomIter, RandomIter>(left, right);
     }
   }
@@ -1020,8 +1020,8 @@ ForwardIter2 swap_ranges(ForwardIter1 first1, ForwardIter1 last1,
 // 第二个版本以函数对象binary_op作用于两个序列[first1, last1)、[first2,
 // last2)的相同位置
 template <typename InputIter, typename OutputIter, typename UnaryOperation>
-OutputIter tranform(InputIter first, InputIter last, OutputIter result,
-                    UnaryOperation unary_op) {
+OutputIter transform(InputIter first, InputIter last, OutputIter result,
+                     UnaryOperation unary_op) {
   for (; first != last; ++first, ++result) {
     *result = unary_op(*first);
   }
@@ -1030,8 +1030,8 @@ OutputIter tranform(InputIter first, InputIter last, OutputIter result,
 
 template <typename InputIter1, typename InputIter2, typename OutputIter,
           typename BinaryOperation>
-OutputIter tranform(InputIter1 first1, InputIter1 last1, InputIter2 first2,
-                    OutputIter result, BinaryOperation binary_op) {
+OutputIter transform(InputIter1 first1, InputIter1 last1, InputIter2 first2,
+                     OutputIter result, BinaryOperation binary_op) {
   for (; first1 != last1; ++first1, ++first2, ++result) {
     *result = binary_op(*first1, *first2);
   }
@@ -1043,7 +1043,7 @@ OutputIter tranform(InputIter1 first1, InputIter1 last1, InputIter2 first2,
 template <typename InputIter, typename OutputIter, typename T>
 OutputIter remove_copy(InputIter first, InputIter last, OutputIter result,
                        const T& value) {
-  for (; first != last; +first) {
+  for (; first != last; ++first) {
     if (*first != value) {
       *result++ = *first;
     }
@@ -1066,7 +1066,7 @@ ForwardIter remove(ForwardIter first, ForwardIter last, const T& value) {
 template <typename InputIter, typename OutputIter, typename UnaryPredicate>
 OutputIter remove_copy_if(InputIter first, InputIter last, OutputIter result,
                           UnaryPredicate unary_pred) {
-  for (; first != last; +first) {
+  for (; first != last; ++first) {
     if (unary_pred(*first)) {
       *result++ = *first;
     }
@@ -1111,8 +1111,7 @@ OuputIter replace_copy(InputIter first, InputIter last, OuputIter result,
 template <typename InputIter, typename OuputIter, typename UnaryPredicate,
           typename T>
 OuputIter replace_copy_if(InputIter first, InputIter last, OuputIter result,
-                          const T& old_value, UnaryPredicate unary_pred,
-                          const T& new_value) {
+                          UnaryPredicate unary_pred, const T& new_value) {
   for (; first != last; ++first, ++result) {
     *result = unary_pred(*first) ? new_value : *first;
   }
@@ -1120,10 +1119,9 @@ OuputIter replace_copy_if(InputIter first, InputIter last, OuputIter result,
 }
 
 // replace_if
-template <typename InputIter, typename OuputIter, typename UnaryPredicate,
-          typename T>
-void replace_if(InputIter first, InputIter last, const T& old_value,
-                UnaryPredicate unary_pred, const T& new_value) {
+template <typename InputIter, typename UnaryPredicate, typename T>
+void replace_if(InputIter first, InputIter last, UnaryPredicate unary_pred,
+                const T& new_value) {
   for (; first != last; ++first) {
     if (unary_pred(*first)) {
       *first = new_value;
@@ -1401,12 +1399,12 @@ bool is_permutation(ForwardIter1 first1, ForwardIter1 last1,
   return is_permutation_aux(first1, last1, first2, last2, pred);
 }
 
-template <typename ForwardIter1, typename ForwardIter2, typename BinaryPred>
+template <typename ForwardIter1, typename ForwardIter2>
 bool is_permutation(ForwardIter1 first1, ForwardIter1 last1,
                     ForwardIter2 first2, ForwardIter2 last2) {
   using v1 = typename IteratorTraits<ForwardIter1>::value_type;
   using v2 = typename IteratorTraits<ForwardIter2>::value_type;
-  static_assert(std::is_same<v1, v2>::kValue,
+  static_assert(std::is_same<v1, v2>::value,
                 "the type should be same in mystl::is_permutation");
   return is_permutation_aux(first1, last1, first2, last2, mystl::EqualTo<v1>());
 }
@@ -1959,7 +1957,7 @@ BidirectionalIter partition(BidirectionalIter first, BidirectionalIter last,
 // 其余放到result_false的输出区间，并返回一个mystl::pair指向这两个区间的尾部
 template <typename InputIter, typename OutputIter1, typename OutputIter2,
           typename UnaryPredicate>
-mystl::pair<OutputIter1, OutputIter2> partial_sort(InputIter first,
+mystl::pair<OutputIter1, OutputIter2> partition_copy(InputIter first,
                                                    InputIter last,
                                                    OutputIter1 result_true,
                                                    OutputIter2 result_false,

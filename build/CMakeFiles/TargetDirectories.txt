@@ -1,5 +1,5 @@
 /home/lzj/Desktop/LzjTinySTL/build/CMakeFiles/rebuild_cache.dir
 /home/lzj/Desktop/LzjTinySTL/build/CMakeFiles/edit_cache.dir
+/home/lzj/Desktop/LzjTinySTL/build/Test/CMakeFiles/edit_cache.dir
 /home/lzj/Desktop/LzjTinySTL/build/Test/CMakeFiles/rebuild_cache.dir
 /home/lzj/Desktop/LzjTinySTL/build/Test/CMakeFiles/stltest.dir
-/home/lzj/Desktop/LzjTinySTL/build/Test/CMakeFiles/edit_cache.dir
