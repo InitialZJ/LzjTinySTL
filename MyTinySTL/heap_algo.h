@@ -63,7 +63,7 @@ void adjust_heap(RandomIter first, Distance holeIndex, Distance len, T value) {
   auto topIndex = holeIndex;
   auto rchild = 2 * holeIndex + 2;
   while (rchild < len) {
-    if (*(first + rchild) < (*first + rchild - 1)) {
+    if (*(first + rchild) < *(first + rchild - 1)) {
       --rchild;
     }
     *(first + holeIndex) = *(first + rchild);
@@ -172,6 +172,7 @@ template <typename RandomIter>
 void make_heap(RandomIter first, RandomIter last) {
   mystl::make_heap_aux(first, last, distance_type(first));
 }
+
 // 重载版本使用函数对象 comp 代替比较操作
 template <class RandomIter, class Distance, class Compared>
 void make_heap_aux(RandomIter first, RandomIter last, Distance*, Compared comp) {

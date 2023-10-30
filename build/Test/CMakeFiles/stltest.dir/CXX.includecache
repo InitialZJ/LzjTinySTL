@@ -85,14 +85,20 @@ cstddef
 -
 cstdlib
 -
+type_traits
+-
 algobase.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
 allocator.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/allocator.h
 construct.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/construct.h
+iterator.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
 uninitialized.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/uninitialized.h
+util.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/numeric.h
 iterator.h

@@ -93,7 +93,7 @@ class TemporaryBuffer {
 };
 
 template <typename ForwardIterator, typename T>
-TemporaryBuffer<ForwardIterator, T>::TemporaryBuffer(Iterator first, ForwardIterator last) {
+TemporaryBuffer<ForwardIterator, T>::TemporaryBuffer(ForwardIterator first, ForwardIterator last) {
   try {
     len_ = mystl::distance(first, last);
     allocate_buffer();

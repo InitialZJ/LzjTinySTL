@@ -412,7 +412,7 @@ ForwardIter adjacent_find(ForwardIter first, ForwardIter last) {
   }
   auto next = first;
   while (++next != last) {
-    if (*first == *last) {
+    if (*first == *next) {
       return first;
     }
     first = next;
@@ -428,7 +428,7 @@ ForwardIter adjacent_find(ForwardIter first, ForwardIter last, Compared comp) {
   }
   auto next = first;
   while (++next != last) {
-    if (comp(*first, *last)) {
+    if (comp(*first, *next)) {
       return first;
     }
     first = next;
@@ -925,7 +925,7 @@ const T& median(const T& left, const T& mid, const T& right) {
 template <typename T, typename Compared>
 const T& median(const T& left, const T& mid, const T& right, Compared comp) {
   if (comp(left, mid)) {
-    if (mid < right) {
+    if (comp(mid, right)) {
       return mid;
     } else if (comp(left, right)) {
       return right;
@@ -1067,7 +1067,7 @@ template <typename InputIter, typename OutputIter, typename UnaryPredicate>
 OutputIter remove_copy_if(InputIter first, InputIter last, OutputIter result,
                           UnaryPredicate unary_pred) {
   for (; first != last; ++first) {
-    if (unary_pred(*first)) {
+    if (!unary_pred(*first)) {
       *result++ = *first;
     }
   }
@@ -1957,11 +1957,9 @@ BidirectionalIter partition(BidirectionalIter first, BidirectionalIter last,
 // 其余放到result_false的输出区间，并返回一个mystl::pair指向这两个区间的尾部
 template <typename InputIter, typename OutputIter1, typename OutputIter2,
           typename UnaryPredicate>
-mystl::pair<OutputIter1, OutputIter2> partition_copy(InputIter first,
-                                                   InputIter last,
-                                                   OutputIter1 result_true,
-                                                   OutputIter2 result_false,
-                                                   UnaryPredicate unary_pred) {
+mystl::pair<OutputIter1, OutputIter2> partition_copy(
+    InputIter first, InputIter last, OutputIter1 result_true,
+    OutputIter2 result_false, UnaryPredicate unary_pred) {
   for (; first != last; ++first) {
     if (unary_pred(*first)) {
       *result_true++ = *first;
@@ -2054,7 +2052,7 @@ void insertion_sort(RandomIter first, RandomIter last) {
   }
   for (auto i = first + 1; i != last; ++i) {
     auto value = *i;
-    if (value < *i) {
+    if (value < *first) {
       mystl::copy_backward(first, i, i + 1);
       *first = value;
     } else {
@@ -2185,11 +2183,11 @@ void nth_element(RandomIter first, RandomIter nth, RandomIter last) {
     auto cut = mystl::unchecked_partition(
         first, last,
         mystl::median(*first, *(first + (last - first) / 2), *(last - 1)));
-    if (cur <= nth) {
+    if (cut <= nth) {
       // 如果nth位于右段
-      first = cur;  // 对右段进行分割
+      first = cut;  // 对右段进行分割
     } else {
-      last = cur;
+      last = cut;
     }
   }
   mystl::insertion_sort(first, last);
@@ -2207,11 +2205,11 @@ void nth_element(RandomIter first, RandomIter nth, RandomIter last,
         first, last,
         mystl::median(*first, *(first + (last - first) / 2), *(last - 1)),
         comp);
-    if (cur <= nth) {
+    if (cut <= nth) {
       // 如果nth位于右段
-      first = cur;  // 对右段进行分割
+      first = cut;  // 对右段进行分割
     } else {
-      last = cur;
+      last = cut;
     }
   }
   mystl::insertion_sort(first, last, comp);

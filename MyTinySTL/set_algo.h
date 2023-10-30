@@ -161,7 +161,7 @@ OutputIter set_symmetric_difference(
       ++first1;
       ++result;
     } else if (*first2 < *first1) {
-      *result = *first1;
+      *result = *first2 ;
       ++first2;
       ++result;
     } else {
@@ -188,7 +188,7 @@ OutputIter set_symmetric_difference(
       ++first1;
       ++result;
     } else if (comp(*first2, *first1)) {
-      *result = *first1;
+      *result = *first2;
       ++first2;
       ++result;
     } else {

@@ -128,8 +128,8 @@ TEST(equal_test) {
 
 TEST(fill_test) {
   int exp[10], act[10];
-  mystl::vector<int> v1(10, 1);
-  mystl::vector<int> v2(10, 2);
+  mystl::Vector<int> v1(10, 1);
+  mystl::Vector<int> v2(10, 2);
   std::fill(exp, exp + 10, 1);
   mystl::fill(act, act + 10, 1);
   EXPECT_CON_EQ(exp, act);
