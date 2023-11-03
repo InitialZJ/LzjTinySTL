@@ -574,33 +574,75 @@ class BasicString {
   // 查找相关操作
   size_type find(value_type ch, size_type pos = 0) const noexcept;
   size_type find(const_pointer str, size_type pos = 0) const noexcept;
-  size_type find(const_pointer str, size_type pos, size_type count) const noexcept;
+  size_type find(const_pointer str, size_type pos,
+                 size_type count) const noexcept;
   size_type find(const BasicString& str, size_type pos = 0) const noexcept;
 
   size_type rfind(value_type ch, size_type pos = npos) const noexcept;
   size_type rfind(const_pointer str, size_type pos = npos) const noexcept;
-  size_type rfind(const_pointer str, size_type pos, size_type count) const noexcept;
+  size_type rfind(const_pointer str, size_type pos,
+                  size_type count) const noexcept;
   size_type rfind(const BasicString& str, size_type pos = npos) const noexcept;
 
   size_type find_first_of(value_type ch, size_type pos = 0) const noexcept;
   size_type find_first_of(const_pointer str, size_type pos = 0) const noexcept;
-  size_type find_first_of(const_pointer str, size_type pos, size_type count) const noexcept;
-  size_type find_first_of(const BasicString& str, size_type pos = 0) const noexcept;
+  size_type find_first_of(const_pointer str, size_type pos,
+                          size_type count) const noexcept;
+  size_type find_first_of(const BasicString& str,
+                          size_type pos = 0) const noexcept;
 
   size_type find_first_not_of(value_type ch, size_type pos = 0) const noexcept;
-  size_type find_first_not_of(const_pointer str, size_type pos = 0) const noexcept;
-  size_type find_first_not_of(const_pointer str, size_type pos, size_type count) const noexcept;
-  size_type find_first_not_of(const BasicString& str, size_type pos = 0) const noexcept;
+  size_type find_first_not_of(const_pointer str,
+                              size_type pos = 0) const noexcept;
+  size_type find_first_not_of(const_pointer str, size_type pos,
+                              size_type count) const noexcept;
+  size_type find_first_not_of(const BasicString& str,
+                              size_type pos = 0) const noexcept;
 
   size_type find_last_of(value_type ch, size_type pos = 0) const noexcept;
   size_type find_last_of(const_pointer str, size_type pos = 0) const noexcept;
-  size_type find_last_of(const_pointer str, size_type pos, size_type count) const noexcept;
-  size_type find_last_of(const BasicString& str, size_type pos = 0) const noexcept;
+  size_type find_last_of(const_pointer str, size_type pos,
+                         size_type count) const noexcept;
+  size_type find_last_of(const BasicString& str,
+                         size_type pos = 0) const noexcept;
 
   size_type find_last_not_of(value_type ch, size_type pos = 0) const noexcept;
-  size_type find_last_not_of(const_pointer str, size_type pos = 0) const noexcept;
-  size_type find_last_not_of(const_pointer str, size_type pos, size_type count) const noexcept;
-  size_type find_last_not_of(const BasicString& str, size_type pos = 0) const noexcept;
+  size_type find_last_not_of(const_pointer str,
+                             size_type pos = 0) const noexcept;
+  size_type find_last_not_of(const_pointer str, size_type pos,
+                             size_type count) const noexcept;
+  size_type find_last_not_of(const BasicString& str,
+                             size_type pos = 0) const noexcept;
+
+  // count
+  size_type count(value_type ch, size_type pos = 0) const noexcept;
+
+ public:
+  // 重载operator+=
+  BasicString& operator+=(const BasicString& str) { return append(str); }
+  BasicString& operator+=(value_type str) { return append(1, str); }
+  BasicString& operator+=(const_pointer str) {
+    return append(str, str + CharTraits::length(str));
+  }
+
+  // 重载operator >> / operator <<
+  friend std::istream& operator>>(std::istream& is, BasicString& str) {
+    value_type* buf = new value_type[4096];
+    is >> buf;
+    BasicString tmp(buf);
+    str = std::move(tmp);
+    delete[] buf;
+    return is;
+  }
+
+  friend std::ostream& operator>>(std::ostream& os, const BasicString& str) {
+    for (size_type i = 0; i < str.size_; ++i) {
+      os << *(str.buffer_ + i);
+    }
+    return os;
+  }
+
+ private:
 };
 
 }  // namespace mystl
