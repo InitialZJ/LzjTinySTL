@@ -700,6 +700,7 @@ BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::operator=(
   return *this;
 }
 
+// 移动赋值操作符
 template <typename CharType, typename CharTraits>
 BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::operator=(
     BasicString&& rhs) noexcept {
@@ -711,6 +712,73 @@ BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::operator=(
   rhs.size_ = 0;
   rhs.cap_ = 0;
   return *this;
+}
+
+// 用一个字符串赋值
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::operator=(
+    const_pointer str) {
+  const size_type len = CharTraits::length(str);
+  if (cap_ < len) {
+    auto new_buffer = data_allocator::allocate(len + 1);
+    data_allocator::deallocate(buffer_);
+    buffer_ = new_buffer;
+    cap_ = len + 1;
+  }
+  CharTraits::copy(buffer_, str, len);
+  size_ = len;
+  return *this;
+}
+
+// 用一个字符赋值
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::operator=(
+    value_type ch) {
+  if (cap_ < 1) {
+    auto new_buffer = data_allocator::allocate(2);
+    data_allocator::deallocate(buffer_);
+    buffer_ = new_buffer;
+    cap_ = 2;
+  }
+  *buffer_ = ch;
+  size_ = 1;
+  return *this;
+}
+
+// 预留储存空间
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::reserve(size_type n) {
+  if (cap_ < n) {
+    THROW_LENGTH_ERROR_IF(n > max_size(),
+                          "n can not lager than max_size() in "
+                          "BasicString<Char, Traits>::reserve(n)");
+    auto new_buffer = data_allocator::allocate(n);
+    char_traits::move(new_buffer, buffer_, size_);
+    buffer_ = new_buffer;
+    cap_ = n;
+  }
+}
+
+// 减少不用的空间
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::shrink_to_fit() {
+  if (size_ != cap_) {
+    reinsert(size_);
+  }
+}
+
+// 在pos处插入一个元素
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::iterator
+BasicString<CharType, CharTraits>::insert(const_iterator pos, value_type ch) {
+  iterator r = const_cast<iterator>(pos);
+  if (size_ == cap_) {
+    return reallocate_and_fill(r, 1, ch);
+  }
+  char_traits::move(r + 1, r, end() - r);
+  ++size_;
+  *r = ch;
+  return r;
 }
 
 }  // namespace mystl
