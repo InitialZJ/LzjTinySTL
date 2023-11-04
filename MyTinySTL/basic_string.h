@@ -643,7 +643,75 @@ class BasicString {
   }
 
  private:
+  // helper functions
+
+  // init / destroy
+  void try_init() noexcept;
+
+  void fill_init(size_type n, value_type ch);
+
+  template <typename Iter>
+  void copy_init(Iter first, Iter last, mystl::InputIteratorTag);
+  template <typename Iter>
+  void copy_init(Iter first, Iter last, mystl::ForwardIteratorTag);
+
+  void init_from(const_pointer src, size_type pos, size_type n);
+
+  void destroy_buffer();
+
+  // get raw pointer
+  const_pointer to_raw_pointer() const;
+
+  // shrink to fit
+  void reinsert(size_type size);
+
+  // append
+  template <typename Iter>
+  BasicString& append_range(Iter first, Iter last);
+
+  // compare
+  int compare_cstr(const_pointer s1, size_type n1, const_pointer s2,
+                   size_type n2) const;
+
+  // replace
+  BasicString& replace_cstr(const_iterator first, size_type count1,
+                            const_pointer str, size_type count2);
+  BasicString& replace_fill(const_iterator first, size_type count1,
+                            size_type count2, value_type ch);
+  template <typename Iter>
+  BasicString& replace_copy(const_iterator first, const_iterator last,
+                            Iter first2, Iter last2);
+
+  // reallocate
+  void reallocate(size_type need);
+  iterator reallocate_and_fill(iterator pos, size_type n, value_type ch);
+  iterator reallocate_and_copy(iterator pos, const_iterator first,
+                               const_iterator last);
 };
+
+// 复制赋值操作符
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::operator=(
+    const BasicString& rhs) {
+  if (this != &rhs) {
+    BasicString tmp(rhs);
+    swap(tmp);
+  }
+  return *this;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::operator=(
+    BasicString&& rhs) noexcept {
+  destroy_buffer();
+  buffer_ = rhs.buffer_;
+  size_ = rhs.size_;
+  cap_ = rhs.cap_;
+  rhs.buffer_ = nullptr;
+  rhs.size_ = 0;
+  rhs.cap_ = 0;
+  return *this;
+}
 
 }  // namespace mystl
 
