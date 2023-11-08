@@ -463,7 +463,7 @@ class BasicString {
   BasicString& append(const_pointer s) {
     return append(s, CharTraits::lenght(s));
   }
-  BasicString& append(const_iterator s, size_type count);
+  BasicString& append(const_pointer s, size_type count);
 
   template <typename Iter,
             typename std::enable_if<mystl::IsInputIterator<Iter>::kValue,
@@ -779,6 +779,642 @@ BasicString<CharType, CharTraits>::insert(const_iterator pos, value_type ch) {
   ++size_;
   *r = ch;
   return r;
+}
+
+// 在pos处插入n个元素
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::iterator
+BasicString<CharType, CharTraits>::insert(const_iterator pos, size_type count,
+                                          value_type ch) {
+  iterator r = const_cast<iterator>(pos);
+  if (count == 0) {
+    return r;
+  }
+  if (cap_ - size_ < count) {
+    return reallocate_and_fill(r, count, ch);
+  }
+  if (pos == end()) {
+    char_traits::fill(end(), ch, count);
+    size_ += count;
+    return r;
+  }
+  // TODO: 原版代码有问题，以下是修改代码
+  // char_traits::move(r + count, r, count);  // 原代码
+  char_traits::move(r + count, r, end() - pos);
+  char_traits::fill(r, ch, count);
+  size_ += count;
+  return r;
+}
+
+// 在pos处插入[first, last)内的元素
+template <typename CharType, typename CharTraits>
+template <typename Iter>
+typename BasicString<CharType, CharTraits>::iterator
+BasicString<CharType, CharTraits>::insert(const_iterator pos, Iter first,
+                                          Iter last) {
+  iterator r = const_cast<iterator>(pos);
+  const size_type len = mystl::distance(first, last);
+  if (len == 0) {
+    return r;
+  }
+  if (cap_ - size_ < len) {
+    return reallocate_and_copy(r, first, last);
+  }
+  if (pos == end()) {
+    mystl::uninitialized_copy(first, last, end());
+    size_ += len;
+    return r;
+  }
+  // char_traits::move(r + len, r, len);  // TODO: 有问题
+  char_traits::move(r + len, r, end() - pos);
+  mystl::uninitialized_copy(first, last, r);
+  size_ += len;
+  return r;
+}
+
+// 在末尾添加count个ch
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::append(
+    size_type count, value_type ch) {
+  THROW_LENGTH_ERROR_IF(size_ > max_size() - count,
+                        "BasicString<Char, Traits>'s size too big");
+  if (cap_ - size_ < count) {
+    reallocate(count);
+  }
+  char_traits::fill(buffer_ + size_, ch, count);
+  size_ += count;
+  return *this;
+}
+
+// 在末尾添加[str[pos] str[pos + count])一段
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::append(
+    const BasicString& str, size_type pos, size_type count) {
+  THROW_LENGTH_ERROR_IF(size_ > max_size() - count,
+                        "BasicString<Char, Traits>'s size too big");
+  if (count == 0) {
+    return *this;
+  }
+  if (cap_ - size_ < count) {
+    reallocate(count);
+  }
+  char_traits::copy(buffer_ + size_, str.buffer_ + pos, count);
+  size_ += count;
+  return *this;
+}
+
+// 在末尾添加[s, s + count)一段
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits>& BasicString<CharType, CharTraits>::append(
+    const_pointer s, size_type count) {
+  THROW_LENGTH_ERROR_IF(size_ > max_size() - count,
+                        "BasicString<Char, Traits>'s size too big");
+  if (cap_ - size_ < count) {
+    reallocate(count);
+  }
+  char_traits::copy(buffer_ + size_, s, count);
+  size_ += count;
+  return *this;
+}
+
+// 删除pos处的元素
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::iterator
+BasicString<CharType, CharTraits>::erase(const_iterator pos) {
+  MYSTL_DEBUG(pos != end());
+  iterator r = const_cast<iterator>(pos);
+  char_traits::move(r, pos + 1, end() - pos - 1);
+  --size_;
+  return r;
+}
+
+// 删除[first, last)的元素
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::iterator
+BasicString<CharType, CharTraits>::erase(const_iterator first,
+                                         const_iterator last) {
+  if (first == begin() && last == end()) {
+    clear();
+    return end();
+  }
+  const size_type n = end() - last;
+  iterator r = const_cast<iterator>(first);
+  char_traits::move(r, last, n);
+  size_ -= (last - first);
+  return r;
+}
+
+// 重置容器大小
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::resize(size_type count, value_type ch) {
+  if (count < size_) {
+    erase(buffer_ + count, buffer_ + size_);
+  } else {
+    append(count - size_, ch);
+  }
+}
+
+// 比较两个BasicString，小于返回-1，大于返回1，等于返回0
+template <typename CharType, typename CharTraits>
+int BasicString<CharType, CharTraits>::compare(const BasicString& other) const {
+  return compare_cstr(buffer_, size_, other.buffer_, other.size_);
+}
+
+// 从pos1下标开始的count1个字符跟另一个BasicString比较
+template <typename CharType, typename CharTraits>
+int BasicString<CharType, CharTraits>::compare(size_type pos1, size_type count1,
+                                               const BasicString& other) const {
+  auto n1 = mystl::min(count1, size_ - pos1);
+  return compare_cstr(buffer_ + pos1, n1, other.buffer_, other.size_);
+}
+
+// 从pos1下标开始的count1个字符跟另一个BasicString下标pos2开始的count2个字符比较
+template <typename CharType, typename CharTraits>
+int BasicString<CharType, CharTraits>::compare(size_type pos1, size_type count1,
+                                               const BasicString& other,
+                                               size_type pos2,
+                                               size_type count2) const {
+  auto n1 = mystl::min(count1, size_ - pos1);
+  auto n2 = mystl::min(count2, other.size_ - pos2);
+  return compare_cstr(buffer_, n1, other.buffer_, n2);
+}
+
+// 根另一个字符串比较
+template <typename CharType, typename CharTraits>
+int BasicString<CharType, CharTraits>::compare(const_pointer s) const {
+  auto n2 = char_traits::length(s);
+  return compare_cstr(buffer_, size_, s, n2);
+}
+
+// 从下标pos1开始的count1个字符跟另一个字符串比较
+template <typename CharType, typename CharTraits>
+int BasicString<CharType, CharTraits>::compare(size_type pos1, size_type count1,
+                                               const_pointer s) const {
+  auto n1 = mystl::min(count1, size_ - pos1);
+  auto n2 = char_traits::length(s);
+  return compare_cstr(buffer_, n1, s, n2);
+}
+
+// 从下标pos1开始的count1个字符跟另一个字符串的前count2个字符比较
+template <typename CharType, typename CharTraits>
+int BasicString<CharType, CharTraits>::compare(size_type pos1, size_type count1,
+                                               const_pointer s,
+                                               size_type count2) const {
+  auto n1 = mystl::min(count1, size_ - pos1);
+  return compare_cstr(buffer_, n1, s, count2);
+}
+
+// 反转BasicString
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::reverse() noexcept {
+  for (auto i = begin(), j = end(); i < j;) {
+    mystl::iter_swap(i++, --j);
+  }
+}
+
+// 交换两个BasicString
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::swap(BasicString& rhs) noexcept {
+  if (this != &rhs) {
+    mystl::swap(buffer_, rhs.buffer_);
+    mystl::swap(size_, rhs.size_);
+    mystl::swap(cap_, rhs.cap_);
+  }
+}
+
+// 从下标pos开始查找字符为ch的元素，若找到返回其下标，否则返回npos
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find(value_type ch,
+                                        size_type pos) const noexcept {
+  for (auto i = pos; i < size_; ++i) {
+    if (*(buffer_ + i) == ch) {
+      return i;
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找字符串str，若找到返回起始位置的下标，否则返回npos
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find(const_pointer str,
+                                        size_type pos) const noexcept {
+  const auto len = char_traits::length(str);
+  if (len == 0) {
+    return pos;
+  }
+  if (size_ - pos < len) {
+    return npos;
+  }
+  const auto left = size_ - len;
+  for (auto i = pos; i <= left; ++i) {
+    if (*(buffer_ + i) == *str) {
+      size_type j = 1;
+      for (; j < len; ++j) {
+        if (*(buffer_ + i + j) != *(str + j)) {
+          break;
+        }
+      }
+      if (j == len) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找字符串str的前count个字符，若找到返回起始位置的下标，否则返回npos
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find(const_pointer str, size_type pos,
+                                        size_type count) const noexcept {
+  if (count == 0) {
+    return pos;
+  }
+  if (size_ - pos < count) {
+    return npos;
+  }
+  const auto left = size_ - count;
+  for (auto i = pos; i <= left; ++i) {
+    if (*(buffer_ + i) == *str) {
+      size_type j = 1;
+      for (; j < count; ++j) {
+        if (*(buffer_ + i + j) != *(str + j)) {
+          break;
+        }
+      }
+      if (j == count) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找字符串str，若找到返回起始位置的下标，否则返回npos
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find(const BasicString& str,
+                                        size_type pos) const noexcept {
+  const size_type count = str.size_;
+  if (count == 0) {
+    return pos;
+  }
+  if (size_ - pos < count) {
+    return npos;
+  }
+  const auto left = size_ - count;
+  for (auto i = pos; i <= left; ++i) {
+    if (*(buffer_ + i) == str.front()) {
+      size_type j = 1;
+      for (; j < count; ++j) {
+        if (*(buffer_ + i + j) != str[j]) {
+          break;
+        }
+      }
+      if (j == count) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始反向查找值为ch的元素，与find类似
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::rfind(value_type ch,
+                                         size_type pos) const noexcept {
+  if (pos >= size_) {
+    pos = size_ - 1;
+  }
+  for (auto i = pos; i != 0; --i) {
+    if (*(buffer_ + i) == ch) {
+      return i;
+    }
+  }
+  return front() == ch ? 0 : npos;
+}
+
+// 从下标pos开始反向查找字符串str，与find类似
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::rfind(const_pointer str,
+                                         size_type pos) const noexcept {
+  if (pos >= size_) {
+    pos = size_ - 1;
+  }
+  const size_type len = char_traits::length(str);
+  switch (len) {
+    case 0:
+    return pos case 1: {
+      for (auto i = pos; i != 0; --i) {
+        if (*(buffer_ + i) == *str) {
+          return i;
+        }
+      }
+      return front() == *str ? 0 : npos;
+    }
+    default: {
+      // len >= 2
+      for (auto i = pos; i >= len - 1; --i) {
+        if (*(buffer_ + i) == *(str + len - 1)) {
+          size_type j = 1;
+          for (; j < len; ++j) {
+            if (*(buffer_ + i - j) != *(str + len - j - 1)) {
+              break;
+            }
+          }
+          if (j == len) {
+            return i - len + 1;
+          }
+        }
+      }
+      break;
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始反向查找字符串str前count个字符，与find类似
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::rfind(const_pointer str, size_type pos,
+                                         size_type count) const noexcept {
+  if (count == 0) {
+    return pos;
+  }
+  if (pos >= size_) {
+    pos = size_ - 1;
+  }
+  if (pos < count - 1) {
+    return npos;
+  }
+  for (auto i = pos; i >= count - 1; --i) {
+    if (*(buffer_ + i) == *(str + count - 1)) {
+      size_type j = 1;
+      for (; j < count; ++j) {
+        if (*(buffer_ + i - j) != *(str + count - j - 1)) {
+          break;
+        }
+      }
+      if (j == count) {
+        return i - count + 1;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始反向查找字符串str，与find类似
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::rfind(const BasicString& str,
+                                         size_type pos) const noexcept {
+  const size_type count = str.size_;
+  if (count == 0) {
+    return pos;
+  }
+  if (pos >= size_) {
+    pos = size_ - 1;
+  }
+  if (pos < count - 1) {
+    return npos;
+  }
+  for (auto i = pos; i >= count - 1; --i) {
+    if (*(buffer_ + i) == str[count - 1]) {
+      size_type j = 1;
+      for (; j < count; ++j) {
+        if (*(buffer_ + i - j) != str[count - j - 1]) {
+          break;
+        }
+      }
+      if (j == count) {
+        return i - count + 1;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找ch出现的第一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_first_of(value_type ch,
+                                                 size_type pos) const noexcept {
+  for (auto i = pos; i < size_; ++i) {
+    if (*(buffer_ + i) == ch) {
+      return i;
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找字符串s其中的一个字符出现的第一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_first_of(const_pointer s,
+                                                 size_type pos) const noexcept {
+  const size_type len = char_traits::length(s);
+  for (auto i = pos; i < size_; ++i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < len; ++j) {
+      if (ch == *(s + j)) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找字符串s
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_first_of(
+    const_pointer s, size_type pos, size_type count) const noexcept {
+  for (auto i = pos; i < size_; ++i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < count; ++j) {
+      if (ch == *(s + j)) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找字符串str其中的一个字符出现的第一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_first_of(const BasicString& str,
+                                                 size_type pos) const noexcept {
+  for (auto i = pos; i < size_; ++i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < str.size_; ++j) {
+      if (ch == str[j]) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与字符串s其中一个字符不相等的第一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_first_not_of(
+    const_pointer s, size_type pos) const noexcept {
+  const size_type len = char_traits::length(s);
+  for (auto i = pos; i < size_; ++i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < len; ++j) {
+      if (ch != *(s + j)) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与字符串s前count个字符中不相等的第一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_first_not_of(
+    const_pointer s, size_type pos, size_type count) const noexcept {
+  for (auto i = pos; i < size_; ++i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < count; ++j) {
+      if (ch != *(s + j)) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与字符串str的字符中不相等的第一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_first_not_of(
+    const BasicString& str, size_type pos) const noexcept {
+  for (auto i = pos; i < size_; ++i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < str.size_; ++j) {
+      if (ch != str[j]) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与ch相等的最后一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_last_of(value_type ch,
+                                                size_type pos) const noexcept {
+  for (auto i = size_ - 1; i >= pos; --i) {
+    if (*(buffer_ + i) == ch) {
+      return i;
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与字符串s其中一个字符相等的最后一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_last_of(const_pointer s,
+                                                size_type pos) const noexcept {
+  const size_type len = char_traits::length(s);
+  for (auto i = size_ - 1; i >= pos; --i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < len; ++j) {
+      if (ch == *(s + j)) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与字符串s前count个字符中相等的最后一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_last_of(
+    const_pointer s, size_type pos, size_type count) const noexcept {
+  for (auto i = size_ - 1; i >= pos; --i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < count; ++j) {
+      if (ch == *(s + j)) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与字符串str字符中相等的最后一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_last_of(const BasicString& str,
+                                                size_type pos) const noexcept {
+  for (auto i = size_ - 1; i >= pos; --i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < str.size_; ++j) {
+      if (ch == str[j]) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与ch字符不相等的最后一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_last_not_of(
+    value_type ch, size_type pos) const noexcept {
+  for (auto i = size_ - 1; i >= pos; --i) {
+    if (*(buffer_ + i) != ch) {
+      return i;
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与字符串s的字符中不相等的最后一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_last_not_of(
+    const_pointer s, size_type pos) const noexcept {
+  const size_type len = char_traits::length(s);
+  for (auto i = size_ - 1; i >= pos; --i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < len; ++j) {
+      if (ch != *(s + j)) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与字符串s前count个字符中不相等的最后一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_last_not_of(
+    const_pointer s, size_type pos, size_type count) const noexcept {
+  for (auto i = size_ - 1; i >= pos; --i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < count; ++j) {
+      if (ch != *(s + j)) {
+        return i;
+      }
+    }
+  }
+  return npos;
 }
 
 }  // namespace mystl
