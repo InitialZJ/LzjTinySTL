@@ -1417,6 +1417,279 @@ BasicString<CharType, CharTraits>::find_last_not_of(
   return npos;
 }
 
+// 从下标pos开始查找与字符串str字符中不相等的最后一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_last_not_of(
+    const BasicString& str, size_type pos) const noexcept {
+  for (auto i = size_ - 1; i >= pos; --i) {
+    value_type ch = *(buffer_ + i);
+    for (size_type j = 0; j < str.size_; ++j) {
+      if (ch != str[j]) {
+        return i;
+      }
+    }
+  }
+  return npos;
+}
+
+// 返回从下标pos开始字符为ch的元素出现的此书
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::count(value_type ch,
+                                         size_type pos) const noexcept {
+  size_type n = 0;
+  for (auto i = pos; i < size_; ++i) {
+    if (*(buffer_ + i) == ch) {
+      ++n;
+    }
+  }
+  return n;
+}
+
+// helper function
+
+// 尝试初始化一段buffer，若分配失败则忽略，不会抛出异常
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::try_init() noexcept {
+  try {
+    buffer_ =
+        data_allocator::allocate(static_cast<size_type>(STRING_INIT_SIZE));
+    size_ = 0;
+    cap_ = 0;
+  } catch (...) {
+    buffer_ = nullptr;
+    size_ = 0;
+    cap_ = 0;
+    // no throw
+  }
+}
+
+// fill_init
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::fill_init(size_type n, value_type ch) {
+  const auto init_size =
+      mystl::max(static_cast<size_type>(STRING_INIT_SIZE), n + 1);
+  buffer_ = data_allocator::allocate(init_size);
+  char_traits::fill(buffer_, ch, n);
+  size_ = n;
+  cap_ = init_size;
+}
+
+// copy_init函数
+template <typename CharType, typename CharTraits>
+template <typename Iter>
+void BasicString<CharType, CharTraits>::copy_init(Iter first, Iter last,
+                                                  mystl::InputIteratorTag) {
+  size_type n = mystl::distance(first, last);
+  const auto init_size =
+      mystl::max(static_cast<size_type>(STRING_INIT_SIZE), n + 1);
+  try {
+    buffer_ = data_allocator::allocate(init_size);
+    size_ = n;
+    cap_ = init_size;
+  } catch (...) {
+    buffer_ = nullptr;
+    size_ = 0;
+    cap_ = 0;
+    throw;
+  }
+  for (; n > 0; --n, ++first) {
+    // TODO: append在哪定义的
+    append(*first);
+  }
+}
+
+template <typename CharType, typename CharTraits>
+template <typename Iter>
+void BasicString<CharType, CharTraits>::copy_init(Iter first, Iter last,
+                                                  mystl::ForwardIteratorTag) {
+  const size_type n = mystl::distance(first, last);
+  const auto init_size =
+      mystl::max(static_cast<size_type>(STRING_INIT_SIZE), n + 1);
+  try {
+    buffer_ = data_allocator::allocate(init_size);
+    size_ = n;
+    cap_ = init_size;
+    mystl::uninitialized_copy(first, last, buffer_);
+  } catch (...) {
+    buffer_ = nullptr;
+    size_ = 0;
+    cap_ = 0;
+    throw;
+  }
+}
+
+// init_from函数
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::init_from(const_pointer src,
+                                                  size_type pos,
+                                                  size_type count) {
+  const auto init_size =
+      mystl::max(static_cast<size_type>(STRING_INIT_SIZE), count + 1);
+  buffer_ = data_allocator::allocate(init_size);
+  char_traits::copy(buffer_, src + pos, count);
+  size_ = count;
+  cap_ = init_size;
+}
+
+// destroy_buffer
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::destroy_buffer() {
+  if (buffer_ != nullptr) {
+    data_allocator::deallocate(buffer_, cap_);
+    buffer_ = nullptr;
+    size_ = 0;
+    cap_ = 0;
+  }
+}
+
+// to_raw_pointer
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::const_pointer
+BasicString<CharType, CharTraits>::to_raw_pointer() const {
+  *(buffer_ + size_) = value_type();
+  return buffer_;
+}
+
+// reinsert函数
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::reinsert(size_type size) {
+  auto new_buffer = data_allocator::allocate(size);
+  try {
+    char_traits::move(new_buffer, buffer_, size);
+  } catch (...) {
+    data_allocator::deallocate(new_buffer);
+  }
+  buffer_ = new_buffer;
+  size_ = size;
+  cap_ = size;
+}
+
+// append_range，末尾追加一段[first, last)内的字符
+template <typename CharType, typename CharTraits>
+template <typename Iter>
+BasicString<CharType, CharTraits>&
+BasicString<CharType, CharTraits>::append_range(Iter first, Iter last) {
+  const size_type n = mystl::distance(first, last);
+  THROW_LENGTH_ERROR_IF(size_ > max_size() - n,
+                        "BasicString<CharType, CharTraits>'s size too big");
+  if (cap_ - size_ < n) {
+    reallocate(n);
+  }
+  mystl::uninitialized_copy_n(first, n, buffer_ + size_);
+  size_ += n;
+  return *this;
+}
+
+template <typename CharType, typename CharTraits>
+int BasicString<CharType, CharTraits>::compare_cstr(const_pointer s1,
+                                                    size_type n1,
+                                                    const_pointer s2,
+                                                    size_type n2) const {
+  auto rlen = mystl::min(n1, n2);
+  auto res = char_traits::compare(s1, s2, rlen);
+  if (res != 0) {
+    return res;
+  }
+  if (n1 < n2) {
+    return -1;
+  }
+  if (n1 > n2) {
+    return 1;
+  }
+  return 0;
+}
+
+// 把first开始的count1个字符替换成str开始的count2个字符
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits>&
+BasicString<CharType, CharTraits>::replace_cstr(const_iterator first,
+                                                size_type count1,
+                                                const_pointer str,
+                                                size_type count2) {
+  if (static_cast<size_type>(cend() - first) < count1) {
+    count1 = cend() - first;
+  }
+  if (count1 < count2) {
+    const size_type add = count2 - count1;
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - add,
+                          "BasicString<CharType, CharTraits>'s size too big");
+    if (size_ > cap_ - add) {
+      reallocate(add);
+    }
+    pointer r = const_cast<pointer>(first);
+    char_traits::move(r + count2, first + count1, end() - (first + count1));
+    char_traits::copy(r, str, count2);
+    size_ += add;
+  } else {
+    pointer r = const_cast<pointer>(first);
+    char_traits::move(r + count2, first + count1, end() - (first + count1));
+    char_traits::copy(r, str, count2);
+    size_ -= (count1 - count2);
+  }
+  return *this;
+}
+
+// 把first开始的count1个字符替换成count2个ch字符
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits>&
+BasicString<CharType, CharTraits>::replace_fill(const_iterator first,
+                                                size_type count1,
+                                                size_type count2,
+                                                value_type ch) {
+  if (static_cast<size_type>(cend() - first) < count1) {
+    count1 = cend() - first;
+  }
+  if (count1 < count2) {
+    const size_type add = count2 - count1;
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - add,
+                          "BasicString<CharType, CharTraits>'s size too big");
+    if (size_ > cap_ - add) {
+      reallocate(add);
+    }
+    pointer r = const_cast<pointer>(first);
+    char_traits::move(r + count2, first + count1, end() - (first + count1));
+    char_traits::fill(r, ch, count2);
+    size_ += add;
+  } else {
+    pointer r = const_cast<pointer>(first);
+    char_traits::move(r + count2, first + count1, end() - (first + count1));
+    char_traits::fill(r, ch, count2);
+    size_ -= (count1 - count2);
+  }
+  return *this;
+}
+
+// 把[first, last)的字符替换成[first2, last2)
+template <typename CharType, typename CharTraits>
+template <typename Iter>
+BasicString<CharType, CharTraits>&
+BasicString<CharType, CharTraits>::replace_copy(const_iterator first,
+                                                const_iterator last,
+                                                Iter first2, Iter last2) {
+  size_type len1 = last - first;
+  size_type len2 = last2 - first2;
+  if (len1 < len2) {
+    const size_type add = len2 - len1;
+    THROW_LENGTH_ERROR_IF(size_ > max_size() - add,
+                          "BasicString<CharType, CharTraits>'s size too big");
+    if (size_ > cap_ - add) {
+      reallocate(add);
+    }  
+    pointer r = const_cast<pointer>(first);
+    char_traits::move(r + len2, first + len1, end() - (first + len1));
+    char_traits::copy(r, first2, len2);
+    size_ += add;
+  } else {
+    pointer r = const_cast<pointer>(first);
+    char_traits::move(r + len2, first + len1, end() - (first + len1));
+    char_traits::copy(r, first2, len2);
+    size_ -= (len1 - len2);
+  }
+  return *this;
+}
+
 }  // namespace mystl
 
 #endif  // !MYTINYSTL_BASIC_STRING_H_
