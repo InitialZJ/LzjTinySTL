@@ -26,3 +26,4 @@
 | unordered_map      | 100%  | 100% |
 | unordered_multimap      | 100%  | 100% |
 | string      | 100%  | 100% |
+| algorithm performance  | -  | 100% |
