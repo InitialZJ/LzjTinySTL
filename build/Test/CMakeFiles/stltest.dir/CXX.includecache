@@ -6,22 +6,6 @@
 
 #IncludeRegexTransform: 
 
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algo.h
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-cstddef
--
-ctime
--
-algobase.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
-functional.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/functional.h
-heap_algo.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/heap_algo.h
-memory.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
-
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
 cstring
 -
@@ -30,23 +14,27 @@ iterator.h
 util.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algorithm.h
-algobase.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
-algo.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algo.h
-set_algo.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/set_algo.h
-heap_algo.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/heap_algo.h
-numeric.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/numeric.h
-
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/allocator.h
 construct.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/construct.h
 util.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
+
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/astring.h
+basic_string.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/basic_string.h
+
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/basic_string.h
+iostream
+-
+exceptdef.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
+functional.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/functional.h
+iterator.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
+memory.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
 
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/construct.h
 new
@@ -67,10 +55,6 @@ stdexcept
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/functional.h
 cstddef
 -
-
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/heap_algo.h
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
 
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
 cstddef
@@ -100,16 +84,6 @@ uninitialized.h
 util.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/numeric.h
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/set_algo.h
-algobase.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
 type_traits
 -
@@ -125,26 +99,6 @@ cstddef
 -
 type_traits.h
 /home/lzj/Desktop/LzjTinySTL/MyTinySTL/type_traits.h
-
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/vector.h
-initializer_list
--
-system_error
--
-algo.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algo.h
-algobase.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algobase.h
-allocator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/allocator.h
-exceptdef.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/exceptdef.h
-iterator.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/iterator.h
-memory.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/memory.h
-util.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/util.h
 
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/io/color.h
 ../platform.h
@@ -166,17 +120,11 @@ type_traits
 
 /home/lzj/Desktop/LzjTinySTL/Test/Lib/redbud/platform.h
 
-/home/lzj/Desktop/LzjTinySTL/Test/algorithm_test.h
-algorithm
+/home/lzj/Desktop/LzjTinySTL/Test/string_test.h
+string
 -
-functional
--
-numeric
--
-../MyTinySTL/algorithm.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/algorithm.h
-../MyTinySTL/vector.h
-/home/lzj/Desktop/LzjTinySTL/MyTinySTL/vector.h
+../MyTinySTL/astring.h
+/home/lzj/Desktop/LzjTinySTL/MyTinySTL/astring.h
 test.h
 /home/lzj/Desktop/LzjTinySTL/Test/test.h
 
@@ -185,8 +133,8 @@ crtdbg.h
 -
 stdlib.h
 -
-algorithm_test.h
-/home/lzj/Desktop/LzjTinySTL/Test/algorithm_test.h
+string_test.h
+/home/lzj/Desktop/LzjTinySTL/Test/string_test.h
 
 /home/lzj/Desktop/LzjTinySTL/Test/test.h
 cstdio

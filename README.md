@@ -25,4 +25,4 @@
 | unordered_multiset      | 100%  | 100% |
 | unordered_map      | 100%  | 100% |
 | unordered_multimap      | 100%  | 100% |
-| string      | 90%  | 0% |
+| string      | 100%  | 100% |

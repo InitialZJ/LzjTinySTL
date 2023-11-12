@@ -330,7 +330,7 @@ class BasicString {
   }
 
   template <typename Iter,
-            typename std::enable_if<mystl::IsInputIterator<Iter>::value,
+            typename std::enable_if<mystl::IsInputIterator<Iter>::kValue,
                                     int>::type = 0>
   BasicString(Iter first, Iter last) {
     copy_init(first, last, iterator_category(first));
@@ -461,7 +461,7 @@ class BasicString {
   BasicString& append(const BasicString& str, size_type pos, size_type count);
 
   BasicString& append(const_pointer s) {
-    return append(s, CharTraits::lenght(s));
+    return append(s, CharTraits::length(s));
   }
   BasicString& append(const_pointer s, size_type count);
 
@@ -553,7 +553,7 @@ class BasicString {
     THROW_OUT_OF_RANGE_IF(
         pos1 > size_ || pos2 > str.size_,
         "basic_string<Char, Traits>::replace's pos out of range");
-    return replace_fill(buffer_ + pos1, count1, str.buffer_ + pos2, count2);
+    return replace_cstr(buffer_ + pos1, count1, str.buffer_ + pos2, count2);
   }
 
   template <typename Iter,
@@ -635,7 +635,7 @@ class BasicString {
     return is;
   }
 
-  friend std::ostream& operator>>(std::ostream& os, const BasicString& str) {
+  friend std::ostream& operator<<(std::ostream& os, const BasicString& str) {
     for (size_type i = 0; i < str.size_; ++i) {
       os << *(str.buffer_ + i);
     }
@@ -798,8 +798,7 @@ BasicString<CharType, CharTraits>::insert(const_iterator pos, size_type count,
     size_ += count;
     return r;
   }
-  // TODO: 原版代码有问题，以下是修改代码
-  // char_traits::move(r + count, r, count);  // 原代码
+  // 原版代码有问题，以下是修改代码，下个函数同理
   char_traits::move(r + count, r, end() - pos);
   char_traits::fill(r, ch, count);
   size_ += count;
@@ -825,7 +824,6 @@ BasicString<CharType, CharTraits>::insert(const_iterator pos, Iter first,
     size_ += len;
     return r;
   }
-  // char_traits::move(r + len, r, len);  // TODO: 有问题
   char_traits::move(r + len, r, end() - pos);
   mystl::uninitialized_copy(first, last, r);
   size_ += len;
@@ -1108,7 +1106,8 @@ BasicString<CharType, CharTraits>::rfind(const_pointer str,
   const size_type len = char_traits::length(str);
   switch (len) {
     case 0:
-    return pos case 1: {
+      return pos;
+    case 1: {
       for (auto i = pos; i != 0; --i) {
         if (*(buffer_ + i) == *str) {
           return i;
@@ -1255,6 +1254,19 @@ BasicString<CharType, CharTraits>::find_first_of(const BasicString& str,
       if (ch == str[j]) {
         return i;
       }
+    }
+  }
+  return npos;
+}
+
+// 从下标pos开始查找与ch不相等的第一个位置
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::size_type
+BasicString<CharType, CharTraits>::find_first_not_of(
+    value_type ch, size_type pos) const noexcept {
+  for (auto i = pos; i < size_; ++i) {
+    if (*(buffer_ + i) != ch) {
+      return i;
     }
   }
   return npos;
@@ -1480,7 +1492,7 @@ void BasicString<CharType, CharTraits>::fill_init(size_type n, value_type ch) {
 template <typename CharType, typename CharTraits>
 template <typename Iter>
 void BasicString<CharType, CharTraits>::copy_init(Iter first, Iter last,
-                                                  mystl::InputIteratorTag) {
+                                                  mystl::ForwardIteratorTag) {
   size_type n = mystl::distance(first, last);
   const auto init_size =
       mystl::max(static_cast<size_type>(STRING_INIT_SIZE), n + 1);
@@ -1495,30 +1507,30 @@ void BasicString<CharType, CharTraits>::copy_init(Iter first, Iter last,
     throw;
   }
   for (; n > 0; --n, ++first) {
-    // TODO: append在哪定义的
-    append(*first);
+    // 原代码错误，修改如下
+    append(1, *first);
   }
 }
 
-template <typename CharType, typename CharTraits>
-template <typename Iter>
-void BasicString<CharType, CharTraits>::copy_init(Iter first, Iter last,
-                                                  mystl::ForwardIteratorTag) {
-  const size_type n = mystl::distance(first, last);
-  const auto init_size =
-      mystl::max(static_cast<size_type>(STRING_INIT_SIZE), n + 1);
-  try {
-    buffer_ = data_allocator::allocate(init_size);
-    size_ = n;
-    cap_ = init_size;
-    mystl::uninitialized_copy(first, last, buffer_);
-  } catch (...) {
-    buffer_ = nullptr;
-    size_ = 0;
-    cap_ = 0;
-    throw;
-  }
-}
+// template <typename CharType, typename CharTraits>
+// template <typename Iter>
+// void BasicString<CharType, CharTraits>::copy_init(Iter first, Iter last,
+//                                                   mystl::ForwardIteratorTag) {
+//   const size_type n = mystl::distance(first, last);
+//   const auto init_size =
+//       mystl::max(static_cast<size_type>(STRING_INIT_SIZE), n + 1);
+//   try {
+//     buffer_ = data_allocator::allocate(init_size);
+//     size_ = n;
+//     cap_ = init_size;
+//     mystl::uninitialized_copy(first, last, buffer_);
+//   } catch (...) {
+//     buffer_ = nullptr;
+//     size_ = 0;
+//     cap_ = 0;
+//     throw;
+//   }
+// }
 
 // init_from函数
 template <typename CharType, typename CharTraits>
@@ -1676,7 +1688,7 @@ BasicString<CharType, CharTraits>::replace_copy(const_iterator first,
                           "BasicString<CharType, CharTraits>'s size too big");
     if (size_ > cap_ - add) {
       reallocate(add);
-    }  
+    }
     pointer r = const_cast<pointer>(first);
     char_traits::move(r + len2, first + len1, end() - (first + len1));
     char_traits::copy(r, first2, len2);
@@ -1689,6 +1701,213 @@ BasicString<CharType, CharTraits>::replace_copy(const_iterator first,
   }
   return *this;
 }
+
+// reallocate
+template <typename CharType, typename CharTraits>
+void BasicString<CharType, CharTraits>::reallocate(size_type need) {
+  const auto new_cap = mystl::max(cap_ + need, cap_ + (cap_ >> 1));
+  auto new_buffer = data_allocator::allocate(new_cap);
+  char_traits::move(new_buffer, buffer_, size_);
+  data_allocator::deallocate(buffer_);
+  buffer_ = new_buffer;
+  cap_ = new_cap;
+}
+
+// reallocate_and_fill函数
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::iterator
+BasicString<CharType, CharTraits>::reallocate_and_fill(iterator pos,
+                                                       size_type n,
+                                                       value_type ch) {
+  const auto r = pos - buffer_;
+  const auto old_cap = cap_;
+  const auto new_cap = mystl::max(old_cap + n, old_cap + (old_cap >> 1));
+  auto new_buffer = data_allocator::allocate(new_cap);
+  auto e1 = char_traits::move(new_buffer, buffer_, r) + r;
+  auto e2 = char_traits::fill(e1, ch, n) + n;
+  char_traits::move(e2, buffer_ + r, size_ - r);
+  data_allocator::deallocate(buffer_, old_cap);
+  buffer_ = new_buffer;
+  size_ += n;
+  cap_ = new_cap;
+  return buffer_ + r;
+}
+
+// reallocate_and_copy函数
+template <typename CharType, typename CharTraits>
+typename BasicString<CharType, CharTraits>::iterator
+BasicString<CharType, CharTraits>::reallocate_and_copy(iterator pos,
+                                                       const_iterator first,
+                                                       const_iterator last) {
+  const auto r = pos - buffer_;
+  const auto old_cap = cap_;
+  const size_type n = mystl::distance(first, last);
+  const auto new_cap = mystl::max(old_cap + n, old_cap + (old_cap >> 1));
+  auto new_buffer = data_allocator::allocate(new_cap);
+  auto e1 = char_traits::move(new_buffer, buffer_, r) + r;
+  auto e2 = mystl::uninitialized_copy_n(first, n, e1) + n;
+  char_traits::move(e2, buffer_ + r, size_ - r);
+  data_allocator::deallocate(buffer_, old_cap);
+  buffer_ = new_buffer;
+  size_ += n;
+  cap_ = new_cap;
+  return buffer_ + r;
+}
+
+// 重载全局操作符
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    const BasicString<CharType, CharTraits>& lhs,
+    const BasicString<CharType, CharTraits>& rhs) {
+  BasicString<CharType, CharTraits> tmp(lhs);
+  tmp.append(rhs);
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    const CharType* lhs, const BasicString<CharType, CharTraits>& rhs) {
+  BasicString<CharType, CharTraits> tmp(lhs);
+  tmp.append(rhs);
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    CharType ch, const BasicString<CharType, CharTraits>& rhs) {
+  BasicString<CharType, CharTraits> tmp(1, ch);
+  tmp.append(rhs);
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    const BasicString<CharType, CharTraits>& lhs, const CharType* rhs) {
+  BasicString<CharType, CharTraits> tmp(lhs);
+  tmp.append(rhs);
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    const BasicString<CharType, CharTraits>& lhs, CharType ch) {
+  BasicString<CharType, CharTraits> tmp(lhs);
+  tmp.append(1, ch);
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    BasicString<CharType, CharTraits>&& lhs,
+    const BasicString<CharType, CharTraits>& rhs) {
+  BasicString<CharType, CharTraits> tmp(mystl::move(lhs));
+  tmp.append(rhs);
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    const BasicString<CharType, CharTraits>& lhs,
+    BasicString<CharType, CharTraits>&& rhs) {
+  BasicString<CharType, CharTraits> tmp(mystl::move(rhs));
+  tmp.insert(tmp.begin(), lhs.begin(), lhs.end());
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    BasicString<CharType, CharTraits>&& lhs,
+    BasicString<CharType, CharTraits>&& rhs) {
+  BasicString<CharType, CharTraits> tmp(mystl::move(lhs));
+  tmp.append(rhs);  // TODO: 啥时候定义的这种append
+  return tmp;
+}
+
+template <typename CharType, typename CharTraitss>
+BasicString<CharType, CharTraitss> operator+(
+    const CharType* lhs, BasicString<CharType, CharTraitss>&& rhs) {
+  BasicString<CharType, CharTraitss> tmp(mystl::move(rhs));
+  tmp.insert(tmp.begin(), lhs, lhs + CharTraits<CharType>::length(lhs));
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    CharType ch, BasicString<CharType, CharTraits>&& rhs) {
+  BasicString<CharType, CharTraits> tmp(mystl::move(rhs));
+  tmp.insert(tmp.begin(), ch);
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    BasicString<CharType, CharTraits>&& lhs, const CharType* rhs) {
+  BasicString<CharType, CharTraits> tmp(mystl::move(lhs));
+  tmp.append(rhs);
+  return tmp;
+}
+
+template <typename CharType, typename CharTraits>
+BasicString<CharType, CharTraits> operator+(
+    BasicString<CharType, CharTraits>&& lhs, CharType ch) {
+  BasicString<CharType, CharTraits> tmp(mystl::move(lhs));
+  tmp.append(1, ch);
+  return tmp;
+}
+
+// 重载比较操作符
+template <typename CharType, typename CharTraits>
+bool operator==(const BasicString<CharType, CharTraits>& lhs,
+                const BasicString<CharType, CharTraits>& rhs) {
+  return lhs.size() == rhs.size() && lhs.compare(rhs) == 0;
+}
+
+template <typename CharType, typename CharTraits>
+bool operator!=(const BasicString<CharType, CharTraits>& lhs,
+                const BasicString<CharType, CharTraits>& rhs) {
+  return lhs.size() != rhs.size() || lhs.compare(rhs) != 0;
+}
+
+template <typename CharType, typename CharTraits>
+bool operator<(const BasicString<CharType, CharTraits>& lhs,
+               const BasicString<CharType, CharTraits>& rhs) {
+  return lhs.compare(rhs) < 0;
+}
+
+template <typename CharType, typename CharTraits>
+bool operator<=(const BasicString<CharType, CharTraits>& lhs,
+                const BasicString<CharType, CharTraits>& rhs) {
+  return lhs.compare(rhs) <= 0;
+}
+
+template <typename CharType, typename CharTraits>
+bool operator>(const BasicString<CharType, CharTraits>& lhs,
+               const BasicString<CharType, CharTraits>& rhs) {
+  return lhs.compare(rhs) > 0;
+}
+
+template <typename CharType, typename CharTraits>
+bool operator>=(const BasicString<CharType, CharTraits>& lhs,
+                const BasicString<CharType, CharTraits>& rhs) {
+  return lhs.compare(rhs) >= 0;
+}
+
+// 重载mystl的swap
+template <typename CharType, typename CharTraits>
+void swap(const BasicString<CharType, CharTraits>& lhs,
+          const BasicString<CharType, CharTraits>& rhs) noexcept {
+  lhs.swap(rhs);
+}
+
+// 特化mystl::Hash
+template <typename CharType, typename CharTraits>
+struct Hash<BasicString<CharType, CharTraits>> {
+  size_t operator()(const BasicString<CharType, CharTraits>& str) {
+    return bitwise_hash((const unsigned char*)str.c_str(),
+                        str.size() * sizeof(CharType));
+  }
+};
 
 }  // namespace mystl
 
