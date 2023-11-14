@@ -192,12 +192,10 @@ struct RbTreeIteratorBase : public mystl::Iterator<mystl::BidirectionalIteratorT
     if (node->parent->parent == node && rb_tree_is_red(node)) {
       // 如果node为header
       node = node->right;  // 指向整棵树的max结点
-      // TODO(lzj): why
     } else if (node->left != nullptr) {
       node = rb_tree_max(node->left);
     } else {
       // 非header结点，也无左子结点
-      // TODO(lzj): 如果node是最小值呢
       auto y = node->parent;
       while (node == y->left) {
         node = y;

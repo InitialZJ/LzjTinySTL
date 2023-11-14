@@ -1820,7 +1820,7 @@ BasicString<CharType, CharTraits> operator+(
     BasicString<CharType, CharTraits>&& lhs,
     BasicString<CharType, CharTraits>&& rhs) {
   BasicString<CharType, CharTraits> tmp(mystl::move(lhs));
-  tmp.append(rhs);  // TODO: 啥时候定义的这种append
+  tmp.append(rhs);
   return tmp;
 }
 

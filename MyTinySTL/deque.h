@@ -470,7 +470,6 @@ void Deque<T>::resize(size_type new_size, const value_type& value) {
 template <typename T>
 void Deque<T>::shrink_to_fit() noexcept {
   // 至少会留下头部缓冲区
-  // TODO(lzj): 顺序没搞懂
   for (auto cur = map_; cur < begin_.node; ++cur) {
     data_allocator::deallocate(*cur, kBufferSize);
     *cur = nullptr;
@@ -1029,7 +1028,6 @@ void Deque<T>::insert_dispatch(
   position = begin_ + elems_before;
   auto cur = --last;
   for (size_type i = 0; i < n; ++i, --cur) {
-    // TODO(lzj): 顺序为什么是这样
     insert(position, *cur);
   }
 }
